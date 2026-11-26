@@ -16,7 +16,7 @@ def test_defaults_match_design():
     config = load_config(DEFAULT)
     assert config.signal.lost_time_s == 10
     assert config.signal.green_budget_s == 80
-    assert config.model.discharge_rate_vps == (0.5, 0.5)
+    assert config.model.discharge_rate_vps == pytest.approx((1860 / 3600, 1860 / 3600))
     assert config.model.beta == 0.1
     assert config.solver.name == "projected_gradient"
 
