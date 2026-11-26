@@ -64,7 +64,7 @@ def test_observed_signal_sequence_and_durations(tmp_path):
     config = load("medium", duration=270.0)  # three cycles
     observed = []
     summary = run_fixed(
-        config, seed=1, folder=tmp_path, green=(50, 30),
+        config, seed=1, folder=tmp_path, green=(49, 29),  # displayed as 50 and 30
         on_step=lambda sim: observed.append(
             sim.api.trafficlight.getRedYellowGreenState(config.network.tls_id)
         ),
@@ -75,7 +75,7 @@ def test_observed_signal_sequence_and_durations(tmp_path):
     )
     expected = [
         states[stage]
-        for stage, duration in cycle_stages(config.signal, (50, 30))
+        for stage, duration in cycle_stages(config.signal, (49, 29))
         for _ in range(duration)
     ] * 3
     assert observed == expected

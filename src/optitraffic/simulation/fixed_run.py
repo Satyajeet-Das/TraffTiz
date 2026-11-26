@@ -17,6 +17,22 @@ from optitraffic.simulation.sumo_env import find_binary
 from optitraffic.types import Config
 
 
+@dataclass
+class StepCounter:
+    """Vehicle and incident totals, updated after every simulation step."""
+
+    departed: int = 0
+    arrived: int = 0
+    collisions: int = 0
+    teleports: int = 0
+
+    def update(self, api) -> None:
+        self.departed += api.simulation.getDepartedNumber()
+        self.arrived += api.simulation.getArrivedNumber()
+        self.collisions += api.simulation.getCollidingVehiclesNumber()
+        self.teleports += api.simulation.getStartingTeleportNumber()
+
+
 @dataclass(frozen=True)
 class RunFiles:
     network: Path
@@ -89,16 +105,12 @@ def run_fixed(
         green = (half, config.signal.green_budget_s - half)
     files = prepare_files(config, seed, folder, green)
     incoming = [[origin for origin, _ in phase] for phase in config.network.phase_movements]
-    departed = arrived = collisions = teleports = 0
+    counter = StepCounter()
     worst = [0, 0]
     with TraciClient(sumo_command(config, files, seed, gui)) as sim:
-        simulation = sim.api.simulation
         while sim.time < config.simulation.end_s:
             sim.step()
-            departed += simulation.getDepartedNumber()
-            arrived += simulation.getArrivedNumber()
-            collisions += simulation.getCollidingVehiclesNumber()
-            teleports += simulation.getStartingTeleportNumber()
+            counter.update(sim.api)
             for phase, edges in enumerate(incoming):
                 halting = max(sim.api.edge.getLastStepHaltingNumber(e) for e in edges)
                 worst[phase] = max(worst[phase], halting)
@@ -110,10 +122,10 @@ def run_fixed(
         seed=seed,
         end_time_s=end_time,
         scheduled=files.trips,
-        departed=departed,
-        arrived=arrived,
-        still_waiting_to_enter=files.trips - departed,
+        departed=counter.departed,
+        arrived=counter.arrived,
+        still_waiting_to_enter=files.trips - counter.departed,
         max_halting=(worst[0], worst[1]),
-        collisions=collisions,
-        teleports=teleports,
+        collisions=counter.collisions,
+        teleports=counter.teleports,
     )

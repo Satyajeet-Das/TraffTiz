@@ -27,11 +27,16 @@ class SignalParams:
     all_red_s: int
     g_min_s: int
     g_max_s: int
+    green_lost_s: int = 0  # part of each displayed green that serves no vehicles
 
     @property
     def lost_time_s(self) -> int:
-        """Yellow and all-red for both phases (design decision D4)."""
-        return 2 * (self.yellow_s + self.all_red_s)
+        """Yellow, all-red and lost green for both phases (design decision D4)."""
+        return 2 * (self.yellow_s + self.all_red_s + self.green_lost_s)
+
+    def displayed_green_s(self, effective_s: int) -> int:
+        """Green shown on the signal for a given effective green."""
+        return effective_s + self.green_lost_s
 
     @property
     def green_budget_s(self) -> int:
@@ -103,7 +108,8 @@ def _valid(value: float, positive: bool) -> bool:
 @dataclass(frozen=True)
 class EstimationParams:
     window_s: float
-    include_pending: bool
+    include_pending: bool  # count waiting vehicles as arrivals
+    pending_in_queue: bool  # add waiting vehicles to the queue
 
 
 @dataclass(frozen=True)
@@ -168,7 +174,7 @@ class ApproachState:
     """Measurements for one incoming edge."""
 
     edge: str
-    queue: float  # halting vehicles on the road
+    queue: float  # halting on the road, plus waiting to enter if configured
     arrival_rate: float  # veh/s
     vehicle_count: int
     waiting_time: float  # s, summed over vehicles on the road
@@ -194,6 +200,26 @@ class TrafficState:
     approaches: tuple[ApproachState, ...]
     valid: bool
     issues: tuple[str, ...]
+
+
+@dataclass(frozen=True)
+class TimingPlan:
+    """Green times for one cycle."""
+
+    green: tuple[int, int]  # effective green in whole seconds, (NS, EW)
+    source: str  # controller name, or "fallback"
+    reason: str = ""  # why the fallback was used
+    solver: SolverResult | None = None
+
+
+@dataclass(frozen=True)
+class CycleRecord:
+    """What happened at one decision instant."""
+
+    start_s: float
+    state: TrafficState
+    plan: TimingPlan  # the plan actually applied
+    decision_s: float  # wall-clock time the controller took
 
 
 @dataclass(frozen=True)

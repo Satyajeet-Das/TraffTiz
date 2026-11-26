@@ -42,7 +42,7 @@ def test_states_are_valid_after_the_first_cycle(tool):
         # Decision instants fall at the end of the final all-red.
         assert state.signal_state == "rrrr"
         for a in state.approaches:
-            assert 0 <= a.queue <= a.vehicle_count
+            assert 0 <= a.queue - a.pending <= a.vehicle_count  # halted vehicles on the road
             assert np.isfinite(a.arrival_rate) and a.arrival_rate >= 0
             assert a.waiting_time >= 0
     assert any(s.queue[0] > 0 for s in states)

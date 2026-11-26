@@ -64,6 +64,16 @@ def test_infeasible_plan_rejected(green):
         cycle_stages(SIGNAL, green)
 
 
+def test_lost_green_lengthens_displayed_green_only():
+    signal = SignalParams(90, 3, 2, 10, 70, green_lost_s=1)
+    assert signal.green_budget_s == 78
+    stages = cycle_stages(signal, (49, 29))
+    assert [d for _, d in stages] == [50, 3, 2, 30, 3, 2]
+    assert sum(d for _, d in stages) == signal.cycle_s
+    with pytest.raises(ValueError):
+        cycle_stages(signal, (50, 30))  # displayed values are not a feasible effective plan
+
+
 def test_program_file(tmp_path):
     path = tmp_path / "program.add.xml"
     write_fixed_program(path, "C", stage_states(LINKS, NETWORK), SIGNAL, (40, 40))

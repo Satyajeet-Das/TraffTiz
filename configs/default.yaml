@@ -5,8 +5,9 @@ signal:
   cycle_s: 90
   yellow_s: 3
   all_red_s: 2
-  g_min_s: 10
+  g_min_s: 10                        # limits on effective green
   g_max_s: 70
+  green_lost_s: 1                    # displayed green = effective green + this (measured in M3)
 
 model:
   saturation_flow_vph: [1860, 1860]  # per lane, measured by scripts/measure_saturation.py
@@ -15,7 +16,8 @@ model:
 
 estimation:
   window_s: 180
-  include_pending: true              # also count vehicles waiting to enter a full road
+  include_pending: true              # count vehicles waiting to enter as arrivals
+  pending_in_queue: true             # and add them to the queue
 
 solver:
   name: projected_gradient
