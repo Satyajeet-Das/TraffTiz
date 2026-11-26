@@ -268,7 +268,8 @@ Sample arrivals per cycle `Aᵢ ~ Poisson(λᵢC)`, replacing `λᵢC` in the qu
 ### 6.4 Reference oracle
 
 - Dense grid on `[ℓ, u]` (*default* step 1e-3 s).
-- Bisection on φ' (exact to tolerance because φ' is nondecreasing). For `J_ns`, grid search plus kink points.
+- Bisection on the one-sided derivatives (exact to tolerance because they are nondecreasing). This covers both J and `J_ns`.
+- The grid also contains the kink points and G/2.
 
 A solver passes when `f(x) − f* ≤ tol_f` and the result is feasible.
 
