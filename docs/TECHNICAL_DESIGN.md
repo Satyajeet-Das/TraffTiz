@@ -252,8 +252,8 @@ Stochastic problems add `sample_gradient(x, rng, batch)`.
 
 | Algorithm | Variant | Step / safeguard | Notes |
 |---|---|---|---|
-| Gradient descent | fixed step and Armijo, final projection only in unconstrained tests | `α < 2/L_φ` | On traffic problems it is projected, so also show the unprojected behaviour on test functions |
-| Projected GD | `x ← P(x − α∇f)` | `α = 1/L_φ` or Armijo along the projection arc | *Default online solver* |
+| Gradient descent | fixed step, projected each iteration (identity when unconstrained) | `α < 2/L_φ`, default `1/L_φ` | The fixed-step counterpart of projected GD |
+| Projected GD | `x ← P(x − α∇f)` | Armijo along the projection arc | *Default online solver* |
 | Momentum | heavy ball with projection | α, momentum 0.9 → tune; restart if objective rises sharply | Not monotone |
 | SGD | mini-batch over sampled arrival counts | `αₖ = α₀/(1+k)^p`, p ∈ (0.5, 1]; seeded; average iterates | Minimizes the expected objective; see §6.3 |
 | Newton | damped, projected, semismooth Hessian | Armijo; fall back to gradient step if Hessian ≤ ε | Plain Newton can cycle across the Hessian jumps |
@@ -263,7 +263,7 @@ Stochastic problems add `sample_gradient(x, rng, batch)`.
 
 ### 6.3 Stochastic formulation
 
-Sample arrivals per cycle `Aᵢ ~ Poisson(λᵢC)`, replacing `λᵢC` in the queue term, and minimize `E[J]`. The reference answer is the grid minimum of a large fixed sample average. Its optimum differs from the deterministic one because `max(0,·)²` is convex.
+Sample arrivals per cycle `Aᵢ ~ Poisson(λᵢC)`, replacing `λᵢC` in the queue term, and minimize `E[J]`. The reference answer uses the exact expectation, summed over the Poisson probabilities. Its optimum differs from the deterministic one because `max(0,·)²` is convex.
 
 ### 6.4 Reference oracle
 

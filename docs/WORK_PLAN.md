@@ -81,19 +81,19 @@ Each milestone is done when its exit criteria pass and tests are green.
 
 ### M6 — Solvers (FR-06)
 Build in this order; each ships with tests before the next starts.
-- [ ] Base interface, `SolverResult`, line searches
-- [ ] Projected GD (needed first by M8)
-- [ ] Gradient descent
-- [ ] Momentum
-- [ ] Newton
-- [ ] BFGS
-- [ ] Conjugate gradient (PR+)
-- [ ] Subgradient on J_ns
-- [ ] SGD on the sampled objective
-- [ ] T2 penalty and T3 test problems
-- [ ] Short note per solver: assumptions, variant, parameters
+- [x] Base interface, `SolverResult`, line searches
+- [x] Projected GD (needed first by M8)
+- [x] Gradient descent
+- [x] Momentum
+- [x] Newton
+- [x] BFGS
+- [x] Conjugate gradient (PR+)
+- [x] Subgradient on J_ns
+- [x] SGD on the sampled objective
+- [x] T2 penalty and T3 test problems
+- [x] Short note per solver: assumptions, variant, parameters — [SOLVERS.md](SOLVERS.md)
 
-**Exit:** every solver meets its oracle or known optimum within its stated tolerance, or the exclusion is justified in writing.
+**Exit:** every solver meets its oracle or known optimum within its stated tolerance, or the exclusion is justified in writing. ✅ Met.
 
 ### M7 — Baselines and signal control (FR-07, FR-08, FR-09)
 - [ ] Signal state machine
