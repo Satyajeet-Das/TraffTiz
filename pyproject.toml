@@ -1,0 +1,32 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "optitraffic"
+version = "0.1.0"
+description = "Numerical optimization for adaptive traffic signal timing, studied in simulation."
+readme = "README.md"
+requires-python = ">=3.12,<3.13"
+dependencies = [
+    "numpy==2.2.6",
+    "PyYAML==6.0.2",
+]
+
+[project.optional-dependencies]
+sim = [
+    "eclipse-sumo==1.28.0",
+    "sumolib==1.28.0",
+    "traci==1.28.0",
+]
+dev = [
+    "pytest==8.4.1",
+]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+markers = ["sumo: needs a working SUMO installation"]
+addopts = ["-m", "not sumo", "--strict-markers"]
