@@ -1,0 +1,26 @@
+# Default settings (docs/TECHNICAL_DESIGN.md, sections 4 to 7).
+# Lists are in phase order (NS, EW).
+
+signal:
+  cycle_s: 90
+  yellow_s: 3
+  all_red_s: 2
+  g_min_s: 10
+  g_max_s: 70
+
+model:
+  saturation_flow_vph: [1800, 1800]  # per approach; to be measured in M3
+  queue_weight: [1.0, 1.0]
+  beta: 0.1                          # veh/s
+
+estimation:
+  window_s: 180
+
+solver:
+  name: projected_gradient
+  tolerance: 1.0e-6
+  max_iterations: 500
+  time_budget_s: 0.1
+
+simulation:
+  step_length_s: 1.0
