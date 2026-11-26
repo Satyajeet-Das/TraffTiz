@@ -66,6 +66,8 @@ TraffTiz/
 │  ├─ run.py           one simulation run
 │  └─ experiments.py   batch runs
 ├─ tests/              mirrors src/; tests/integration marked `sumo`
+├─ scripts/            setup checks
+├─ verification/       M1 checks of the formulation
 └─ results/            generated, git-ignored
 ```
 
