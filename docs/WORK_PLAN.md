@@ -104,12 +104,12 @@ Build in this order; each ships with tests before the next starts.
 **Exit:** observed signal log shows correct sequence and durations; conflicting green never occurs; injected invalid plans trigger fallback. ✅ Met — [run tests](../tests/integration/test_control_run.py).
 
 ### M8 — Adaptive control
-- [ ] Adaptive controller using a configurable solver
-- [ ] Integer rounding and time budget
-- [ ] Per-cycle logging
-- [ ] Failure injection: solver error, timeout, invalid state
+- [x] Adaptive controller using a configurable solver
+- [x] Integer rounding and time budget
+- [x] Per-cycle logging
+- [x] Failure injection: solver error, timeout, invalid state
 
-**Exit:** a full run completes for every scenario; plans change only at cycle boundaries; all fallbacks have logged reasons.
+**Exit:** a full run completes for every scenario; plans change only at cycle boundaries; all fallbacks have logged reasons. ✅ Met — [results](M8_ADAPTIVE.md).
 
 ### M9 — Experiments (FR-10)
 - [ ] Metrics from tripinfo and per-step data
