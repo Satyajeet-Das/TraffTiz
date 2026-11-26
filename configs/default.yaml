@@ -15,6 +15,7 @@ model:
 
 estimation:
   window_s: 180
+  include_pending: true              # also count vehicles waiting to enter a full road
 
 solver:
   name: projected_gradient

@@ -59,6 +59,8 @@ def test_config_is_immutable():
         ("model", "beta", -0.1),
         ("model", "beta", float("inf")),
         ("estimation", "window_s", 0),
+        ("estimation", "include_pending", "yes"),
+        ("estimation", "include_pending", 1),
         ("solver", "name", "simplex"),
         ("solver", "tolerance", "small"),
         ("solver", "max_iterations", 0),
