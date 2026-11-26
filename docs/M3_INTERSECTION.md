@@ -45,11 +45,11 @@ Fit: `vehicles = 0.5173 · green − 0.510`, residual standard deviation 0.56 ve
 
 The fit gives effective green about **0.99 s shorter** than displayed green. D4 assumes they are equal, so the model overestimates discharge by about half a vehicle per phase per cycle.
 
-**Not changed yet.** Options: keep D4 and state the error as a limitation, or have the controller display 1 s more than the effective green and increase the lost time to match. This needs a decision before M7.
+**Decided and applied in M7:** the signal shows 1 s more than the effective green (`signal.green_lost_s: 1`), so lost time is 12 s and the green budget 78 s. The equal split is still displayed as 40 s / 40 s, so the runs above are unchanged.
 
 ## Demand levels
 
-Flow ratio `Y = Σλᵢ/μᵢ` with μ = 1860/3600: low 0.19, medium 0.46, high 0.77, dominant and changing 0.74. All are below `G/C = 0.89`, so the scenarios are unchanged.
+Flow ratio `Y = Σλᵢ/μᵢ` with μ = 1860/3600: low 0.19, medium 0.46, high 0.77, dominant and changing 0.74. All are below `G/C = 0.87` (G = 78 after the M7 change), so the scenarios are unchanged.
 
 The dominant scenarios exceed the dominant approach's capacity under an equal split (it needs about 50 s of green), which is why queues fill the approach. A better split should avoid this, so they can separate controllers.
 
