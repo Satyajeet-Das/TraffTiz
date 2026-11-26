@@ -1,11 +1,12 @@
-"""Optimization problems (Technical Design sections 5.3 and 6.5).
+"""Traffic optimization problems (Technical Design sections 5.3, 6.3 and 6.5).
 
-Variables are 1-D arrays so that solvers work in any dimension. Only the
-reduced one-variable problem exists so far; the penalty form, stochastic
-problem and test functions belong to milestone M6.
+Variables are 1-D arrays so that solvers work in any dimension. Standard test
+functions are in `test_functions.py`.
 """
 
 from __future__ import annotations
+
+import math
 
 import numpy as np
 from numpy.typing import ArrayLike
@@ -115,3 +116,107 @@ class ReducedProblem:
         if point.shape != (1,) or not np.isfinite(point[0]):
             raise ValueError(f"x must be a finite array of shape (1,); got {point}")
         return float(point[0])
+
+
+class StochasticProblem(ReducedProblem):
+    """Expected J when arrivals per cycle are Poisson with mean lambda*C.
+
+        F(g) = E[sum w max(0, q + A - mu g)^2] + beta sum lambda (C - g)^2
+
+    The expectation is computed exactly from the Poisson probabilities (the far
+    tail is dropped), so `value` and `gradient` give a reference for SGD.
+    """
+
+    def __init__(self, data: ObjectiveData, g_min: float, g_max: float, budget: float) -> None:
+        super().__init__(data, g_min, g_max, budget)
+        self._means = np.array(data.arrival_rate) * data.cycle_s
+        top = self._means.max()
+        self._counts = np.arange(int(top + 12.0 * math.sqrt(top) + 20))
+        self._probabilities = np.stack([_poisson(mean, self._counts) for mean in self._means])
+
+    def deterministic(self) -> ReducedProblem:
+        """The problem with each arrival count replaced by its mean."""
+        return ReducedProblem(self.data, self.lower, self.upper, self.budget)
+
+    def gradient(self, x: ArrayLike) -> np.ndarray:
+        green = self.green(x)
+        leftover = self._leftover(green)  # (2, counts)
+        expected = np.sum(self._probabilities * leftover, axis=-1)
+        return self._reduced_gradient(green, expected)
+
+    def sample_gradient(self, x: ArrayLike, rng: np.random.Generator, batch: int) -> np.ndarray:
+        """Unbiased estimate of the gradient from `batch` sampled cycles."""
+        green = self.green(x)
+        d = self.data
+        arrivals = rng.poisson(self._means, size=(batch, 2))
+        leftover = np.maximum(
+            0.0, np.array(d.queue) + arrivals - np.array(d.discharge_rate_vps) * green
+        )
+        return self._reduced_gradient(green, leftover.mean(axis=0))
+
+    def hessian(self, x: ArrayLike) -> np.ndarray:
+        raise NotImplementedError("not needed by any solver of the stochastic problem")
+
+    def _leftover(self, green: np.ndarray) -> np.ndarray:
+        """Residual queue for every arrival count, shape (..., 2, counts)."""
+        d = self.data
+        base = np.array(d.queue) - np.array(d.discharge_rate_vps) * green
+        return np.maximum(0.0, base[..., None] + self._counts)
+
+    def _reduced_gradient(self, green: np.ndarray, mean_queue: np.ndarray) -> np.ndarray:
+        d = self.data
+        w, mu, lam = (np.array(v) for v in (d.queue_weight, d.discharge_rate_vps, d.arrival_rate))
+        full = -2.0 * w * mu * mean_queue - 2.0 * d.beta * lam * (d.cycle_s - green)
+        return np.array([full[0] - full[1]])
+
+    def _objective(self, green: np.ndarray) -> np.ndarray:
+        d = self.data
+        squares = np.sum(self._probabilities * self._leftover(green) ** 2, axis=-1)
+        red = d.beta * np.sum(np.array(d.arrival_rate) * (d.cycle_s - green) ** 2, axis=-1)
+        return np.sum(np.array(d.queue_weight) * squares, axis=-1) + red
+
+
+def _poisson(mean: float, counts: np.ndarray) -> np.ndarray:
+    if mean == 0:
+        return (counts == 0).astype(float)
+    log_factorial = np.array([math.lgamma(k + 1.0) for k in counts])
+    return np.exp(counts * math.log(mean) - mean - log_factorial)
+
+
+class PenaltyProblem:
+    """Two-variable form J(g) + rho/2 (g_NS + g_EW - G)^2 with green bounds.
+
+    The cycle constraint holds only approximately, so these solutions are for the
+    algorithm study and must never be applied to the signals.
+    """
+
+    def __init__(
+        self, data: ObjectiveData, g_min: float, g_max: float, budget: float, rho: float
+    ) -> None:
+        if not (math.isfinite(rho) and rho >= 0):
+            raise ValueError(f"rho must be finite and non-negative; got {rho}")
+        if not g_min <= g_max:
+            raise ValueError("g_min must not exceed g_max")
+        self.data, self.rho, self.budget = data, float(rho), float(budget)
+        self.g_min, self.g_max = float(g_min), float(g_max)
+
+    def violation(self, x: np.ndarray) -> float:
+        """g_NS + g_EW - G, in seconds."""
+        return float(np.sum(x) - self.budget)
+
+    def value(self, x: np.ndarray) -> float:
+        return float(objective.value(self.data, x) + 0.5 * self.rho * self.violation(x) ** 2)
+
+    def gradient(self, x: np.ndarray) -> np.ndarray:
+        return objective.gradient(self.data, x) + self.rho * self.violation(x)
+
+    def hessian(self, x: np.ndarray) -> np.ndarray:
+        return objective.hessian(self.data, x) + self.rho
+
+    def project(self, x: np.ndarray) -> np.ndarray:
+        return np.clip(x, self.g_min, self.g_max)
+
+    def lipschitz_constant(self) -> float:
+        d = self.data
+        w, mu, lam = (np.array(v) for v in (d.queue_weight, d.discharge_rate_vps, d.arrival_rate))
+        return float(np.max(2.0 * w * mu**2 + 2.0 * d.beta * lam) + 2.0 * self.rho)

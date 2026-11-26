@@ -6,6 +6,8 @@ import math
 from collections.abc import Sequence
 from dataclasses import dataclass
 
+import numpy as np
+
 SOLVER_NAMES = (
     "gradient_descent",
     "projected_gradient",
@@ -109,6 +111,23 @@ class SolverParams:
     tolerance: float
     max_iterations: int
     time_budget_s: float
+
+
+@dataclass(frozen=True)
+class SolverResult:
+    """What every algorithm reports (PRD FR-06)."""
+
+    x0: np.ndarray  # as given, before projection
+    x: np.ndarray  # final solution
+    objective: float
+    gradient: np.ndarray  # or a subgradient, at x
+    residual: float  # |x - P(x - gradient)|
+    iterations: int
+    converged: bool
+    status: str  # converged | max_iter | stalled | time_budget | numerical_error
+    runtime_s: float
+    feasible: bool
+    history: tuple[float, ...]  # objective at each iterate, starting point first
 
 
 @dataclass(frozen=True)
