@@ -1,0 +1,29 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+build/
+dist/
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Generated experiment output
+results/
+
+# Generated SUMO files (network and route sources are tracked)
+sumo/*.net.xml
+sumo/generated/
+*.sumocfg.log
+tripinfo*.xml
+
+# Local settings and secrets
+.env
+.claude/settings.local.json
+
+# Editor and OS
+.vscode/
+.DS_Store
+Thumbs.db
