@@ -307,9 +307,11 @@ $$g_{k+1}=P\big(g_k-\alpha\,\varphi'(g_k)\big)$$
 
 **Case A**, $g_0=40$, $\alpha=1/L_\varphi$: trial $40+39/1.06\approx76.79$, projected to $70$. Then $r(70)=0$, so it has converged in one step.
 
-**Armijo line search** (when $L_\varphi$ is unknown): start with a large $\alpha$ and halve it until, with $g^+=P(g-\alpha\varphi'(g))$ and a small $c$ such as $10^{-4}$,
+**Armijo line search** (when $L_\varphi$ is unknown): start with a large $\alpha$ and halve it until, with $g^+=P(g-\alpha\varphi'(g))$ and a constant $c\in(0,\tfrac12]$ (here $0.25$),
 
 $$\varphi(g^+)\le\varphi(g)+c\,\varphi'(g)\,(g^+-g)$$
+
+On a quadratic with curvature $L$ this accepts $\alpha\le 2(1-c)/L$. A very small $c$ therefore allows steps of almost $2/L$, which overshoot to nearly the mirror point and converge very slowly.
 
 ### 8.3 Momentum (heavy ball)
 
