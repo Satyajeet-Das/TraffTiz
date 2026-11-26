@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import math
+from collections.abc import Sequence
 from dataclasses import dataclass
 
 SOLVER_NAMES = (
@@ -44,6 +46,56 @@ class ModelParams:
     def discharge_rate_vps(self) -> tuple[float, float]:
         ns, ew = self.saturation_flow_vph
         return (ns / 3600.0, ew / 3600.0)
+
+
+@dataclass(frozen=True)
+class ObjectiveData:
+    """Everything needed to evaluate the objective for one signal cycle."""
+
+    queue: tuple[float, float]  # veh
+    arrival_rate: tuple[float, float]  # veh/s
+    discharge_rate_vps: tuple[float, float]  # veh/s during green
+    queue_weight: tuple[float, float]
+    beta: float  # veh/s
+    cycle_s: float
+
+    def __post_init__(self) -> None:
+        for name, positive in (
+            ("queue", False),
+            ("arrival_rate", False),
+            ("discharge_rate_vps", True),
+            ("queue_weight", True),
+        ):
+            values = tuple(float(v) for v in getattr(self, name))
+            if len(values) != 2 or not all(_valid(v, positive) for v in values):
+                kind = "positive" if positive else "non-negative"
+                raise ValueError(f"{name} needs two finite {kind} values; got {values}")
+            object.__setattr__(self, name, values)
+        if not _valid(self.beta, positive=False):
+            raise ValueError(f"beta must be finite and non-negative; got {self.beta}")
+        if not _valid(self.cycle_s, positive=True):
+            raise ValueError(f"cycle_s must be finite and positive; got {self.cycle_s}")
+
+    @classmethod
+    def from_params(
+        cls,
+        queue: Sequence[float],
+        arrival_rate: Sequence[float],
+        model: ModelParams,
+        signal: SignalParams,
+    ) -> ObjectiveData:
+        return cls(
+            queue=tuple(queue),
+            arrival_rate=tuple(arrival_rate),
+            discharge_rate_vps=model.discharge_rate_vps,
+            queue_weight=model.queue_weight,
+            beta=model.beta,
+            cycle_s=float(signal.cycle_s),
+        )
+
+
+def _valid(value: float, positive: bool) -> bool:
+    return math.isfinite(value) and (value > 0 if positive else value >= 0)
 
 
 @dataclass(frozen=True)
