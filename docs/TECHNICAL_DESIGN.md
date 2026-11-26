@@ -16,7 +16,7 @@ A single four-way SUMO intersection with two phases (NS, EW). Once per cycle, at
 
 ## 2. PRD clarifications (review in M1 with the supervisor)
 
-D1 and D2 are written into PRD 1.1 and still need supervisor confirmation. D3–D6 are proposals.
+D1 and D2 are written into PRD 1.1 and still need supervisor confirmation. D3–D7 are proposals.
 
 | # | Finding | Decision |
 |---|---|---|
@@ -26,6 +26,7 @@ D1 and D2 are written into PRD 1.1 and still need supervisor confirmation. D3–
 | D4 | Effective green (optimizer) differs from displayed green (controller). | *Default:* assume startup lost time equals used yellow, so displayed green = effective green and `L = 2·(yellow + all_red)`. Keep a conversion function so this can change. **M3 measured effective green about 1 s shorter** ([results](M3_INTERSECTION.md)); decide before M7. |
 | D5 | `J` adds veh² and veh·s terms, so β carries units and its value matters. | Tune β and wᵢ on tuning seeds only; report a sensitivity sweep. |
 | D6 | Saturation flow 1800 veh/h may not match SUMO's car-following behaviour. | **Measured in M3: 1862 veh/h; config uses 1860** ([results](M3_INTERSECTION.md)). |
+| D7 | A full road hides new arrivals, so road counts underestimate demand. | *Default:* also count vehicles waiting to enter (`include_pending`). Relies on perfect detection ([results](M4_STATE_COLLECTION.md)). |
 
 ---
 
@@ -85,7 +86,9 @@ class TrafficState:
     arrival_rate: tuple[float, float]   # veh/s
     vehicle_count: tuple[int, int]
     waiting_time: tuple[float, float]   # s
+    pending: tuple[int, int]            # waiting to enter a full road
     signal_state: str
+    approaches: tuple[ApproachState, ...]
     valid: bool
     issues: tuple[str, ...]
 
@@ -148,7 +151,8 @@ Checked against the measured saturation flow in M3. An optional oversaturated ca
 | Quantity | Source |
 |---|---|
 | Queue | `lane.getLastStepHaltingNumber` on incoming lanes, sampled at the decision instant |
-| Arrivals | new vehicle IDs seen on each incoming edge, accumulated every step |
+| Arrivals | new vehicle IDs seen on each incoming edge or waiting to enter it (D7), accumulated every step |
+| Waiting to enter | `simulation.getPendingVehicles` |
 | Vehicle count | `lane.getLastStepVehicleNumber` |
 | Waiting time | `lane.getWaitingTime` |
 | Signal state | `trafficlight.getRedYellowGreenState` |

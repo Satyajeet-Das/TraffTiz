@@ -2,7 +2,7 @@
 
 Numerical optimization for adaptive traffic signal timing, studied in simulation.
 
-> **Status:** project setup (M2) and the queue model, objective functions (M5) all eight optimization algorithms (M6) and the simulated intersection (M3) are complete. The mathematics has been [checked numerically](docs/M1_VERIFICATION.md) and [supervisor approval](docs/M1_SUPERVISOR_REVIEW.md) is pending. Traffic state collection, adaptive signal control and experiments are not implemented yet.
+> **Status:** project setup (M2) and the queue model, objective functions (M5) all eight optimization algorithms (M6), the simulated intersection (M3) and traffic data collection (M4) are complete. The mathematics has been [checked numerically](docs/M1_VERIFICATION.md) and [supervisor approval](docs/M1_SUPERVISOR_REVIEW.md) is pending. Signal controllers, adaptive control and experiments are not implemented yet.
 
 Try after setup: `python examples/reference_cases.py` and `python examples/compare_solvers.py`
 

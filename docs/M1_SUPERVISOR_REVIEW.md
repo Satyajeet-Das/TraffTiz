@@ -56,6 +56,12 @@ $J$ adds terms with different units, so $\beta$ affects the answer. **Proposal:*
 
 ☐ Approve  ☐ Change  Comment:
 
+### D7. Counting vehicles outside a full road
+**Issue:** when a road is full, new vehicles cannot enter and road counts underestimate demand ([measurements](M4_STATE_COLLECTION.md)).  
+**Proposal:** also count vehicles waiting to enter. A real road sensor could not do this, so it is an assumption of perfect detection, applied equally to all controllers.
+
+☐ Approve  ☐ Change  Comment:
+
 ## 4. Algorithm comparison plan
 
 | Track | Problem | Purpose |
