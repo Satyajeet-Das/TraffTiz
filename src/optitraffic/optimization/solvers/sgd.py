@@ -25,7 +25,7 @@ class SGD(Solver):
         initial_step: float | None = None,
         decay: float = 0.75,
         batch_size: int = 16,
-        seed: int = 0,
+        seed: int | tuple[int, ...] = 0,
         **kwargs,
     ) -> None:
         super().__init__(**kwargs)

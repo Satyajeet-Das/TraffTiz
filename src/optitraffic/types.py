@@ -117,7 +117,9 @@ class SolverParams:
     name: str
     tolerance: float
     max_iterations: int
-    time_budget_s: float
+    time_budget_s: float  # for one whole decision
+    solver_budget_fraction: float = 0.8  # share of the budget the solver may use
+    accept_unconverged: bool = True  # use a feasible, improved but unconverged result
 
 
 @dataclass(frozen=True)
@@ -210,6 +212,7 @@ class TimingPlan:
     source: str  # controller name, or "fallback"
     reason: str = ""  # why the fallback was used
     solver: SolverResult | None = None
+    solver_name: str = ""
 
 
 @dataclass(frozen=True)

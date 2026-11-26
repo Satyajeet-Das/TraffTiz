@@ -1,8 +1,8 @@
 """Baseline controllers (PRD FR-09, Technical Design section 7.1).
 
 Every controller has a `name`, says whether it `needs_state`, and returns a
-`TimingPlan` of whole-second effective greens. The adaptive controller is added
-in milestone M8.
+`TimingPlan` of whole-second effective greens. The optimization-based controller
+is in `adaptive.py`.
 """
 
 from __future__ import annotations
@@ -10,6 +10,7 @@ from __future__ import annotations
 import math
 from typing import Protocol
 
+from optitraffic.control.adaptive import AdaptiveController
 from optitraffic.types import Config, SignalParams, TimingPlan, TrafficState
 
 
@@ -89,10 +90,16 @@ class QueueProportional:
         return TimingPlan(proportional_plan(*state.queue, self._signal), self.name)
 
 
-CONTROLLERS = {cls.name: cls for cls in (FixedEqual, FixedCalibrated, QueueProportional)}
+CONTROLLERS = {
+    cls.name: cls
+    for cls in (FixedEqual, FixedCalibrated, QueueProportional, AdaptiveController)
+}
 
 
-def make_controller(name: str, config: Config) -> Controller:
+def make_controller(name: str, config: Config, seed: int = 0) -> Controller:
+    """`seed` is used only by controllers with random numbers (adaptive with SGD)."""
     if name not in CONTROLLERS:
         raise ValueError(f"unknown controller {name!r}; choose from {', '.join(CONTROLLERS)}")
+    if name == AdaptiveController.name:
+        return AdaptiveController(config, seed)
     return CONTROLLERS[name](config)

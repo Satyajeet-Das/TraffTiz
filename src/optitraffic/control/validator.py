@@ -44,18 +44,23 @@ class Validator:
 
     def solver_problems(self, plan: TimingPlan) -> list[str]:
         result = plan.solver
-        if result is None or result.converged:
+        if result is None:
+            return []
+        if not result.feasible:
+            return [f"solver result is infeasible (status {result.status})"]
+        if result.converged:
             return []
         if result.status not in USABLE_STATUSES:
             return [f"solver failed with status {result.status}"]
         improved = bool(result.history) and result.objective <= result.history[0]
-        if self.accept_unconverged and result.feasible and improved:
+        if self.accept_unconverged and improved:
             return []
         return [f"solver did not converge (status {result.status})"]
 
     def fallback(self, reason: str, rejected: TimingPlan | None = None) -> TimingPlan:
         solver = rejected.solver if rejected else None
-        return TimingPlan(self.fallback_green, FALLBACK, reason, solver)
+        solver_name = rejected.solver_name if rejected else ""
+        return TimingPlan(self.fallback_green, FALLBACK, reason, solver, solver_name)
 
     def decide(self, controller: Controller, state: TrafficState) -> tuple[TimingPlan, float]:
         """(plan to apply, controller wall-clock time in s)."""

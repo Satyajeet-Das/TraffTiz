@@ -92,11 +92,20 @@ def build_config(data: Mapping[str, Any]) -> Config:
     v = data["solver"]
     if v["name"] not in SOLVER_NAMES:
         raise ConfigError(f"solver.name must be one of {', '.join(SOLVER_NAMES)}; got {v['name']!r}")
+    fraction = _number(v["solver_budget_fraction"], "solver.solver_budget_fraction", positive=True)
+    if fraction > 1:
+        raise ConfigError(f"solver.solver_budget_fraction must not exceed 1; got {fraction}")
+    if not isinstance(v["accept_unconverged"], bool):
+        raise ConfigError(
+            f"solver.accept_unconverged must be true or false; got {v['accept_unconverged']!r}"
+        )
     solver = SolverParams(
         name=v["name"],
         tolerance=_number(v["tolerance"], "solver.tolerance", positive=True),
         max_iterations=_integer(v["max_iterations"], "solver.max_iterations", minimum=1),
         time_budget_s=_number(v["time_budget_s"], "solver.time_budget_s", positive=True),
+        solver_budget_fraction=fraction,
+        accept_unconverged=v["accept_unconverged"],
     )
 
     t = data["simulation"]
