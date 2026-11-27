@@ -12,13 +12,13 @@ If they disagree, say so and ask. Do not silently pick one. Open decisions are l
 
 ## Current status
 
-M1: maths verified (`python verification/m1_checks.py`, see [report](docs/M1_VERIFICATION.md)); supervisor approval pending ([review sheet](docs/M1_SUPERVISOR_REVIEW.md)). M2 complete: package skeleton, config loader, SUMO 1.28.0 check. M5 complete: queue model, objectives, reduced problem, oracle. M6 complete: all eight solvers ([notes](docs/SOLVERS.md)). M3 complete: intersection, seeded demand, saturation flow 1860 veh/h ([results](docs/M3_INTERSECTION.md)). M4 complete: state collection and demand estimation ([results](docs/M4_STATE_COLLECTION.md)). M7 complete: signal controller, validator with fallback, three baselines, `optitraffic.run`. Green times in plans are effective green (signal shows +1 s). M8 complete: adaptive controller with any of the eight solvers ([results](docs/M8_ADAPTIVE.md)). Next: M9 (experiments); first settle SGD's time-budget dependence. Update this section and the work plan checkboxes as milestones land.
+M1: maths verified (`python verification/m1_checks.py`, see [report](docs/M1_VERIFICATION.md)); supervisor approval pending ([review sheet](docs/M1_SUPERVISOR_REVIEW.md)). M2 complete: package skeleton, config loader, SUMO 1.28.0 check. M5 complete: queue model, objectives, reduced problem, oracle. M6 complete: all eight solvers ([notes](docs/SOLVERS.md)). M3 complete: intersection, seeded demand, saturation flow 1860 veh/h ([results](docs/M3_INTERSECTION.md)). M4 complete: state collection and demand estimation ([results](docs/M4_STATE_COLLECTION.md)). M7 complete: signal controller, validator with fallback, three baselines, `optitraffic.run`. Green times in plans are effective green (signal shows +1 s). M8 complete: adaptive controller with any of the eight solvers ([results](docs/M8_ADAPTIVE.md)). M9 complete: tuning, 480 evaluation runs and the solver study ([results](docs/M9_RESULTS.md)); frozen values in `configs/frozen.yaml`. The adaptive controller loses to the calibrated baseline in 4 of 6 scenarios; any model change needs a new `experiment_id` and new evaluation seeds. Next: M10 (report and demonstration). Update this section and the work plan checkboxes as milestones land.
 
 ## Commands
 
 ```powershell
 py -3.12 -m venv .venv; .\.venv\Scripts\Activate.ps1
-pip install -e ".[dev,sim]"
+pip install -e ".[dev,sim,eval]"
 pytest                      # unit tests, no SUMO needed
 pytest -m sumo              # integration tests, SUMO needed
 python scripts/check_sumo.py
@@ -34,10 +34,8 @@ python scripts/check_adaptive.py         # slow: several minutes
 python -m optitraffic.run --scenario medium --controller adaptive --seed 1 [--solver newton] [--gui]
 ```
 
-Planned, not yet implemented (experiments in M9):
-
 ```powershell
-python -m optitraffic.experiments --config configs/experiments.yaml
+python -m optitraffic.experiments --stage all   # slow: about 90 minutes; finished runs are skipped
 ```
 
 ## Architecture rules

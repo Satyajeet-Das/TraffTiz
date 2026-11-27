@@ -1,0 +1,44 @@
+{
+ "created": "2026-11-26T23:56:56",
+ "python": "3.12.1",
+ "platform": "Windows-11-10.0.26300-SP0",
+ "cpu_count": 12,
+ "sumo": [
+  "Eclipse SUMO sumo 1.28.0"
+ ],
+ "packages": {
+  "numpy": "2.2.6",
+  "pandas": "2.2.3",
+  "scipy": "1.15.1",
+  "matplotlib": "3.10.0",
+  "PyYAML": "6.0.2",
+  "traci": "1.28.0",
+  "sumolib": "1.28.0"
+ },
+ "source_hash": "313643a7523655b0",
+ "git_commit": "f461332c1f908e2b4e5f2864eaa79d5fdbd72b24",
+ "git_uncommitted_files": [
+  " M configs/default.yaml",
+  " M pyproject.toml",
+  " M src/optitraffic/config.py",
+  " M src/optitraffic/control/adaptive.py",
+  " M src/optitraffic/evaluation/__init__.py",
+  " M src/optitraffic/run.py",
+  " M src/optitraffic/types.py",
+  " M tests/test_adaptive.py",
+  " M tests/test_config.py",
+  "?? configs/experiments.yaml",
+  "?? configs/frozen.yaml",
+  "?? src/optitraffic/evaluation/analysis.py",
+  "?? src/optitraffic/evaluation/metrics.py",
+  "?? src/optitraffic/evaluation/plots.py",
+  "?? src/optitraffic/evaluation/runner.py",
+  "?? src/optitraffic/evaluation/settings.py",
+  "?? src/optitraffic/evaluation/solver_study.py",
+  "?? src/optitraffic/evaluation/statistics.py",
+  "?? src/optitraffic/experiments.py",
+  "?? src/optitraffic/integration/queue_monitor.py",
+  "?? tests/integration/test_experiments.py",
+  "?? tests/test_evaluation.py"
+ ]
+}
