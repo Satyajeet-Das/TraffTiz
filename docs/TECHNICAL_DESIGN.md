@@ -220,7 +220,7 @@ Neither test works for `J_ns`: at a minimizer on a kink, the chosen subgradient 
 
 Case A at (40,40): `Q = (38, 0)`, `∂J/∂g = (−40, −1)`, `φ' = −39`.
 
-**Case C (`J_ns`, minimizer on a kink):** `q = (20, 1)`, same parameters. The minimizer is `g_NS = 60` with `J_ns = 75`. There `Q = (8, 0)`, and the one-sided derivatives of the reduced objective are −0.3 (left) and +0.2 (right), so 0 is a subgradient although no derivative vanishes. Derived by hand; confirm with the oracle in M5.
+**Case C (`J_ns`, minimizer on a kink):** `q = (20, 1)`, same parameters. The minimizer is `g_NS = 60` with `J_ns = 75`. There `Q = (8, 0)`, and the one-sided derivatives of the reduced objective are −0.3 (left) and +0.2 (right), so 0 is a subgradient although no derivative vanishes. Confirmed by grid search in M1 ([report](M1_VERIFICATION.md)).
 
 ### 5.6 Rounding
 

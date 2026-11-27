@@ -2,7 +2,7 @@
 
 Numerical optimization for adaptive traffic signal timing, studied in simulation.
 
-> **Status:** design and documentation stage. No code has been written yet.
+> **Status:** milestone M1. The mathematics has been [checked numerically](docs/M1_VERIFICATION.md) and [supervisor approval](docs/M1_SUPERVISOR_REVIEW.md) is pending. The project implementation has not started.
 
 ## Goal
 
@@ -59,7 +59,17 @@ Python 3.12, SUMO with TraCI, NumPy, Pandas, Matplotlib, PyYAML and pytest. SciP
 | M9 | Run experiments |
 | M10 | Report and demonstration |
 
-Progress is tracked in the [work plan](docs/WORK_PLAN.md). Setup and run instructions will be added once the code exists.
+Progress is tracked in the [work plan](docs/WORK_PLAN.md).
+
+## Check the mathematics
+
+Requires Python and NumPy:
+
+```powershell
+python verification/m1_checks.py
+```
+
+Setup and run instructions for the system will be added once it exists.
 
 ## Scope and limitations
 

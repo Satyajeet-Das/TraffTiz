@@ -40,10 +40,10 @@ Each milestone is done when its exit criteria pass and tests are green.
 
 ### M1 — Validate formulation
 - [x] Write D1 and D2 into the PRD (v1.1)
-- [ ] Supervisor confirms D1 and D2; review D3–D6 (Technical Design §2)
-- [ ] Verify gradient, subgradient, Hessian and projection by hand
-- [ ] Confirm reference cases A–C (§5.5)
-- [ ] Agree solver comparison tracks T1–T3 (§6.5)
+- [ ] Supervisor confirms D1 and D2; review D3–D6 (Technical Design §2) — [review sheet](M1_SUPERVISOR_REVIEW.md) ready to send
+- [x] Verify gradient, subgradient, Hessian and projection — [report](M1_VERIFICATION.md)
+- [x] Confirm reference cases A–C (§5.5)
+- [ ] Agree solver comparison tracks T1–T3 (§6.5) — included in the review sheet
 
 **Exit:** written approval or changes recorded; documents updated.
 

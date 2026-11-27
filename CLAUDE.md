@@ -12,7 +12,7 @@ If they disagree, say so and ask. Do not silently pick one. Open decisions are l
 
 ## Current status
 
-Documentation only. No code yet. Update this section and the work plan checkboxes as milestones land.
+M1: maths verified (`python verification/m1_checks.py`, see [report](docs/M1_VERIFICATION.md)); supervisor approval pending ([review sheet](docs/M1_SUPERVISOR_REVIEW.md)). No project code under `src/` yet. Update this section and the work plan checkboxes as milestones land.
 
 ## Commands (valid from M2 onwards)
 
