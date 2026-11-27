@@ -4,7 +4,7 @@
 
 ## 1. Goal
 
-Choose green-light durations at one four-way intersection by numerical optimization, and compare the result with fixed-time and queue-proportional signals in the SUMO traffic simulator.
+Choose green-light durations at one four-way intersection by numerical optimization, and compare the result with fixed-time, queue-proportional and actuated signals in the SUMO traffic simulator.
 
 ## 2. Optimization problem
 
@@ -14,9 +14,9 @@ $$g_1+g_2=C-L,\qquad g_{min}\le g_i\le g_{max},\qquad Q_i=\max\left(0,\;q_i+\lam
 
 $g_i$ green time of phase $i$ (North–South, East–West), $q_i$ queue, $\lambda_i$ arrival rate, $s_i$ saturation flow, $C$ cycle length, $L$ lost time, $w_i,\beta$ weights.
 
-**Planned algorithms:** gradient descent, projected gradient, momentum, stochastic gradient descent, Newton, BFGS, conjugate gradient, subgradient.
+**Algorithms:** gradient descent, projected gradient, momentum, stochastic gradient descent, Newton, BFGS, conjugate gradient, subgradient.
 
-**Current state:** formulation documented and checked numerically ([report](M1_VERIFICATION.md)). The model, the algorithms, the simulated intersection, signal control and three baseline controllers are built; adaptive control and experiments are not.
+**Current state:** formulation documented and checked numerically ([report](M1_VERIFICATION.md)). The model, algorithms, simulation, controllers and a first experiment are complete ([results](M9_RESULTS.md)); a second experiment tests D8.
 
 ## 3. Decisions for your review
 
@@ -62,6 +62,13 @@ $J$ adds terms with different units, so $\beta$ affects the answer. **Proposal:*
 
 ☐ Approve  ☐ Change  Comment:
 
+### D8. When the queues are measured
+**Issue:** both queues were read at the cycle start, just before the North–South green. East–West had only just been served, so its queue was systematically smaller: with equal demand the first experiment measured 12.6 against 5.6 vehicles.  
+**Proposal (being tested):** read each queue just before its own green. The East–West value is then used at the next decision, so it is part of a cycle old. The objective and the signal sequence are unchanged.  
+**Note:** proposed after seeing the first results, so it is evaluated on new random seeds and both versions are reported.
+
+☐ Approve  ☐ Change  Comment:
+
 ## 4. Algorithm comparison plan
 
 | Track | Problem | Purpose |
@@ -82,7 +89,7 @@ $J$ adds terms with different units, so $\beta$ affects the answer. **Proposal:*
    Answer:
 4. What is the deadline and the required report format?  
    Answer:
-5. Is a comparison with SUMO's actuated signal controller expected?  
+5. A comparison with SUMO's actuated signal controller has been added. Is it appropriate, given that its cycle length is not fixed?  
    Answer:
 6. Should we also optimize several cycles together? This gives more variables and a convex problem that is not differentiable everywhere. It is not in the current scope.  
    Answer:

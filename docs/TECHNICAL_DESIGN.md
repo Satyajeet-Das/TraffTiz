@@ -16,7 +16,7 @@ A single four-way SUMO intersection with two phases (NS, EW). Once per cycle, at
 
 ## 2. PRD clarifications (review in M1 with the supervisor)
 
-D1 and D2 are written into PRD 1.1 and still need supervisor confirmation. D3–D7 are proposals.
+D1 and D2 are written into PRD 1.1 and still need supervisor confirmation. D3–D8 are proposals.
 
 | # | Finding | Decision |
 |---|---|---|
@@ -27,6 +27,7 @@ D1 and D2 are written into PRD 1.1 and still need supervisor confirmation. D3–
 | D5 | `J` adds veh² and veh·s terms, so β carries units and its value matters. | Tune β and wᵢ on tuning seeds only; report a sensitivity sweep. |
 | D6 | Saturation flow 1800 veh/h may not match SUMO's car-following behaviour. | **Measured in M3: 1862 veh/h; config uses 1860** ([results](M3_INTERSECTION.md)). |
 | D7 | A full road hides new arrivals, so road counts underestimate demand. | *Default:* also count vehicles waiting to enter as arrivals (`include_pending`) and add them to the queue (`pending_in_queue`). Relies on perfect detection ([results](M4_STATE_COLLECTION.md)). |
+| D8 | Reading both queues at the cycle start biases them: EW has just been served, NS has waited ([M9](M9_RESULTS.md)). | *Option* `queue_sampling: own_green`: read each queue as its own green begins; the EW value is used at the next decision. Added after M9, so evaluated on new seeds (§8.4). The default stays `cycle_start`. |
 
 ---
 
@@ -150,7 +151,7 @@ Checked against the measured saturation flow in M3. An optional oversaturated ca
 
 | Quantity | Source |
 |---|---|
-| Queue | `lane.getLastStepHaltingNumber` on incoming lanes, sampled at the decision instant |
+| Queue | `lane.getLastStepHaltingNumber` on incoming lanes, sampled at the decision instant. With `own_green` (D8) the EW queue is sampled as the EW green begins and held for the next decision |
 | Arrivals | new vehicle IDs seen on each incoming edge or waiting to enter it (D7), accumulated every step |
 | Waiting to enter | `simulation.getPendingVehicles` |
 | Vehicle count | `lane.getLastStepVehicleNumber` |
@@ -317,9 +318,11 @@ All implement `plan(state: TrafficState) -> TimingPlan`.
 | Fixed calibrated | split G in proportion to `λᵢ/μᵢ` from the scenario's long-run average rates, fixed for the run, then bounded |
 | Queue-proportional | `g₁ = G·q₁/(q₁+q₂)`, equal split if both zero, then bounded |
 | Adaptive | solver from config on the §5 model |
-| Actuated (optional) | SUMO actuated program with matching min/max greens and clearances |
+| Actuated | SUMO actuated program with matching min/max greens and clearances; SUMO runs it |
 
 Note for the report: the calibrated baseline knows the true average demand, which the adaptive controller does not. For the changing scenario it uses the whole-run average.
+
+**Actuated baseline.** SUMO places its own detectors and ends a green when no vehicle has been detected for `max_gap_s`, within the displayed limits 11 s and 71 s. Yellow and all-red are fixed. The cycle length therefore varies, unlike the other controllers. It proposes no plan, so the validator and signal controller are bypassed; instead the observed states are checked against the sequence and clearances, and any violation marks the run invalid. `max_gap_s` and `detector_gap_s` are tuned on the tuning seeds.
 
 ### 7.2 Validation and fallback (FR-07)
 
@@ -377,6 +380,15 @@ results/<experiment_id>/
 ├─ summary.csv       paired statistics
 └─ figures/
 ```
+
+### 8.4 Second experiment (`configs/experiments_m9b.yaml`)
+
+Added after M9, with its own plan fixed before any new evaluation seed was simulated.
+
+- Seven variants: fixed equal, fixed calibrated, queue-proportional (both samplings), actuated, adaptive (both samplings).
+- Tuning seeds 1–5 for the actuated settings and for β and window of the own-green adaptive controller. The cycle-start adaptive controller keeps its M9 values. Queue-proportional uses a 90 s window in both variants, as in M9.
+- New evaluation seeds 201–220: 6 × 7 × 20 = 840 runs.
+- Proposed controller: adaptive with own-green sampling, compared with the other six; Holm correction over the 36 comparisons per metric. Primary metric unchanged.
 
 ---
 
