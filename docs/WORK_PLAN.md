@@ -71,13 +71,13 @@ Each milestone is done when its exit criteria pass and tests are green.
 **Exit:** estimates match generated demand within sampling error; invalid-input tests pass.
 
 ### M5 — Model and objective (FR-04, FR-05)
-- [ ] Queue prediction
-- [ ] J, J_ns, gradient, Hessian, subgradient
-- [ ] Reduced 1-D problem, projection, feasibility check
-- [ ] Oracle (grid and bisection)
-- [ ] Hand-case, finite-difference and boundary tests
+- [x] Queue prediction
+- [x] J, J_ns, gradient, Hessian, subgradient
+- [x] Reduced 1-D problem, projection, feasibility check
+- [x] Oracle (grid and bisection)
+- [x] Hand-case, finite-difference and boundary tests
 
-**Exit:** cases A–C reproduced; derivative checks pass; no SUMO import in these modules.
+**Exit:** cases A–C reproduced; derivative checks pass; no SUMO import in these modules. ✅ Met.
 
 ### M6 — Solvers (FR-06)
 Build in this order; each ships with tests before the next starts.
