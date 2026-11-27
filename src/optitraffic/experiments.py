@@ -1,13 +1,14 @@
 """Run the experiments (PRD FR-10, Technical Design section 8).
 
-    python -m optitraffic.experiments --config configs/experiments.yaml --stage all
+    python -m optitraffic.experiments --config configs/experiments_m9b.yaml --stage all
 
 Stages, in order:
 
-    tune      adaptive parameters on the tuning seeds; writes the frozen config
-    evaluate  every controller, scenario and evaluation seed (resumable)
+    tune      each tunable variant on the tuning seeds; writes its settings file
+    evaluate  every variant, scenario and evaluation seed (resumable)
     verify    repeat a few evaluation runs and compare their metrics
-    solvers   solver comparison, tracks T1 to T3 (run with nothing else going on)
+    solvers   solver comparison, tracks T1 to T3, if the plan includes it
+              (run with nothing else going on)
     figures   redraw the figures from the result tables
 """
 
@@ -15,6 +16,7 @@ from __future__ import annotations
 
 import argparse
 import datetime
+import itertools
 import json
 import os
 import platform
@@ -36,9 +38,10 @@ from optitraffic.evaluation.runner import (
     execute_run,
     read_record,
     run_batch,
+    run_config,
     source_hash,
 )
-from optitraffic.evaluation.settings import ExperimentPlan, load_plan
+from optitraffic.evaluation.settings import ExperimentPlan, Variant, load_plan
 from optitraffic.simulation.sumo_env import find_binary
 
 STAGES = ("tune", "evaluate", "verify", "solvers", "figures")
@@ -49,78 +52,120 @@ def results_folder(plan: ExperimentPlan, root: Path) -> Path:
 
 
 # ------------------------------------------------------------------ tuning
-def default_setting(plan: ExperimentPlan) -> tuple[float, float]:
-    config = load_config(*plan.base_configs,
-                         ROOT / "configs" / "scenarios" / f"{plan.scenarios[0]}.yaml")
-    return (config.model.beta, config.estimation.window_s)
+def setting_label(keys: list[str], values: tuple[float, ...]) -> str:
+    return "_".join(f"{key}{value:g}" for key, value in zip(keys, values))
 
 
-def setting_label(beta: float, window: float) -> str:
-    return f"b{beta:g}_w{window:g}"
+def tuned_variants(plan: ExperimentPlan) -> list[Variant]:
+    return [v for v in plan.variants.values() if v.tune]
 
 
-def tuning_specs(plan: ExperimentPlan) -> list[RunSpec]:
-    default = default_setting(plan)
-    betas = sorted({*map(float, plan.tuning["beta"]), default[0]})
-    windows = sorted({*map(float, plan.tuning["window_s"]), default[1]})
+def default_setting(plan: ExperimentPlan, variant: Variant) -> tuple[float, ...]:
+    """The tuned keys' values before tuning: base configs plus the variant's overrides."""
+    spec = variant_spec(variant, plan.scenarios[0], 0, tuned=False)
+    config = run_config(plan.base_configs, spec)
+    return tuple(float(getattr(getattr(config, s), k)) for s, k, _ in variant.tune)
+
+
+def variant_spec(
+    variant: Variant,
+    scenario: str,
+    seed: int,
+    label: str = "",
+    extra: tuple[tuple[str, str, object], ...] = (),
+    tuned: bool = True,
+) -> RunSpec:
+    """`tuned` merges the variant's settings file; tuning runs leave it out."""
+    settings = (variant.settings,) if tuned and variant.settings else ()
+    return RunSpec(
+        scenario, variant.controller, seed, label, (*variant.overrides, *extra),
+        variant.name, settings,
+    )
+
+
+def tuning_grid(plan: ExperimentPlan, variant: Variant) -> list[tuple[float, ...]]:
+    """Every combination of the grids, each extended by the default value."""
+    default = default_setting(plan, variant)
+    axes = [sorted({*grid, value}) for (_, _, grid), value in zip(variant.tune, default)]
+    return list(itertools.product(*axes))
+
+
+def tuning_specs(plan: ExperimentPlan, variant: Variant) -> list[RunSpec]:
+    keys = [key for _, key, _ in variant.tune]
     return [
-        RunSpec(
-            scenario, "adaptive", seed, setting_label(beta, window),
-            (("model", "beta", beta), ("estimation", "window_s", window)),
+        variant_spec(
+            variant, scenario, seed, setting_label(keys, values),
+            tuple((s, k, v) for (s, k, _), v in zip(variant.tune, values)), tuned=False,
         )
-        for beta in betas
-        for window in windows
+        for values in tuning_grid(plan, variant)
         for scenario in plan.scenarios
         for seed in plan.tuning["seeds"]
     ]
 
 
 def tune(plan: ExperimentPlan, root: Path) -> None:
-    folder = results_folder(plan, root) / "tuning"
-    records = run_batch(plan.base_configs, tuning_specs(plan), folder / "runs", plan.workers)
-    runs = pd.DataFrame(records)
-    runs.to_csv(folder / "runs.csv", index=False)
-    default = default_setting(plan)
-    table = analysis.tuning_table(runs, plan.evaluation["primary_metric"], default)
-    table.to_csv(folder / "settings.csv", index=False)
-    beta, window = analysis.choose_setting(table, default)
-    score = float(table[(table["beta"] == beta) & (table["window_s"] == window)]["score"].iloc[0])
-    header = (
-        f"# Chosen by the tuning stage of experiment '{plan.experiment_id}' on seeds "
-        f"{plan.tuning['seeds']}.\n# Score {score:.4f} relative to beta {default[0]:g}, window "
-        f"{default[1]:g} s (lower is better).\n# Do not edit after evaluation runs exist.\n"
-    )
-    plan.frozen_config.write_text(
-        header + yaml.safe_dump(
-            {"model": {"beta": beta}, "estimation": {"window_s": window}}, sort_keys=False
-        ),
-        encoding="utf-8", newline="\n",
-    )
-    print(f"chosen: beta {beta:g}, window {window:g} s, score {score:.4f} "
-          f"-> {plan.frozen_config}")
+    for variant in tuned_variants(plan):
+        folder = results_folder(plan, root) / "tuning" / variant.name
+        specs = tuning_specs(plan, variant)
+        print(f"tuning {variant.name}", flush=True)
+        records = run_batch(plan.base_configs, specs, folder / "runs", plan.workers)
+        keys = [key for _, key, _ in variant.tune]
+        runs = pd.DataFrame(records)
+        for position, (_, key, _) in enumerate(variant.tune):
+            runs[key] = [
+                dict(((s, k), v) for s, k, v in spec.overrides)[variant.tune[position][:2]]
+                for spec in specs
+            ]
+        runs.to_csv(folder / "runs.csv", index=False)
+        default = default_setting(plan, variant)
+        table = analysis.tuning_table(runs, plan.evaluation["primary_metric"], keys, default)
+        table.to_csv(folder / "settings.csv", index=False)
+        chosen = analysis.choose_setting(table, keys, default)
+        row = table
+        for key, value in zip(keys, chosen):
+            row = row[row[key] == value]
+        score = float(row["score"].iloc[0])
+        overlay: dict[str, dict[str, float]] = {}
+        for (section, key, _), value in zip(variant.tune, chosen):
+            overlay.setdefault(section, {})[key] = value
+        described = ", ".join(f"{k} {v:g}" for k, v in zip(keys, default))
+        header = (
+            f"# Chosen for variant '{variant.name}' by the tuning stage of experiment "
+            f"'{plan.experiment_id}'\n# on seeds {plan.tuning['seeds']}. Score {score:.4f} "
+            f"relative to {described} (lower is better).\n"
+            "# Do not edit after evaluation runs exist.\n"
+        )
+        variant.settings.write_text(
+            header + yaml.safe_dump(overlay, sort_keys=False), encoding="utf-8", newline="\n"
+        )
+        picked = ", ".join(f"{k} {v:g}" for k, v in zip(keys, chosen))
+        print(f"chosen: {picked}, score {score:.4f} -> {variant.settings}", flush=True)
 
 
 # -------------------------------------------------------------- evaluation
-def final_configs(plan: ExperimentPlan) -> list[Path]:
-    if not plan.frozen_config.is_file():
-        raise SystemExit(f"{plan.frozen_config} is missing; run the tune stage first")
-    return [*plan.base_configs, plan.frozen_config]
+def check_settings(plan: ExperimentPlan) -> None:
+    for name in plan.controllers:
+        settings = plan.variants[name].settings
+        if settings and not settings.is_file():
+            raise SystemExit(f"{settings} is missing; run the tune stage first")
 
 
 def evaluation_specs(plan: ExperimentPlan) -> list[RunSpec]:
     return [
-        RunSpec(scenario, controller, seed)
+        variant_spec(plan.variants[name], scenario, seed)
         for scenario in plan.scenarios
         for seed in plan.evaluation["seeds"]
-        for controller in plan.controllers
+        for name in plan.controllers
     ]
 
 
 def evaluate(plan: ExperimentPlan, root: Path) -> None:
     folder = results_folder(plan, root)
-    paths = final_configs(plan)
-    save_provenance(plan, folder, paths)
-    records = run_batch(paths, evaluation_specs(plan), folder / "evaluation", plan.workers)
+    check_settings(plan)
+    save_provenance(plan, folder)
+    records = run_batch(
+        plan.base_configs, evaluation_specs(plan), folder / "evaluation", plan.workers
+    )
     runs = pd.DataFrame(records)
     runs.to_csv(folder / "runs.csv", index=False)
     cycles = []
@@ -150,7 +195,8 @@ def evaluate(plan: ExperimentPlan, root: Path) -> None:
 def verify(plan: ExperimentPlan, root: Path) -> None:
     """Repeat a random sample of evaluation runs; every metric but timing must match."""
     folder = results_folder(plan, root)
-    paths = final_configs(plan)
+    check_settings(plan)
+    paths = plan.base_configs
     specs = evaluation_specs(plan)
     rng = np.random.default_rng(plan.verify["seed"])
     chosen = rng.choice(len(specs), size=min(plan.verify["runs"], len(specs)), replace=False)
@@ -179,13 +225,14 @@ def verify(plan: ExperimentPlan, root: Path) -> None:
 
 # ------------------------------------------------------------- solver study
 def recorded_states(plan: ExperimentPlan, root: Path) -> list[solver_study.State]:
-    """States seen by the adaptive controller, chosen setting, on tuning seeds."""
-    config = load_config(*final_configs(plan),
-                         ROOT / "configs" / "scenarios" / f"{plan.scenarios[0]}.yaml")
-    label = setting_label(config.model.beta, config.estimation.window_s)
-    runs = results_folder(plan, root) / "tuning" / "runs"
+    """States seen by the study's variant at its chosen setting, on tuning seeds."""
+    variant = plan.variants[plan.solver_study["variant"]]
+    config = run_config(plan.base_configs, variant_spec(variant, plan.scenarios[0], 0))
+    chosen = [float(getattr(getattr(config, s), k)) for s, k, _ in variant.tune]
+    label = setting_label([key for _, key, _ in variant.tune], tuple(chosen))
+    runs = results_folder(plan, root) / "tuning" / variant.name / "runs"
     states = []
-    for spec in tuning_specs(plan):
+    for spec in tuning_specs(plan, variant):
         if spec.label != label:
             continue
         path = runs / spec.run_id / "cycles.csv"
@@ -199,10 +246,14 @@ def recorded_states(plan: ExperimentPlan, root: Path) -> list[solver_study.State
 
 
 def solvers(plan: ExperimentPlan, root: Path) -> None:
+    if plan.solver_study is None:
+        print("no solver study in this plan; skipped")
+        return
+    check_settings(plan)
     folder = results_folder(plan, root) / "solvers"
     folder.mkdir(parents=True, exist_ok=True)
-    config = load_config(*final_configs(plan),
-                         ROOT / "configs" / "scenarios" / f"{plan.scenarios[0]}.yaml")
+    variant = plan.variants[plan.solver_study["variant"]]
+    config = run_config(plan.base_configs, variant_spec(variant, plan.scenarios[0], 0))
     settings = plan.solver_study
     states = recorded_states(plan, root)
     pd.DataFrame(states, columns=["queue_ns", "queue_ew", "rate_ns", "rate_ew"]).to_csv(
@@ -245,16 +296,25 @@ def figures(plan: ExperimentPlan, root: Path) -> None:
     out = folder / "figures"
     out.mkdir(parents=True, exist_ok=True)
     primary = plan.evaluation["primary_metric"]
+    proposed = plan.evaluation["proposed"]
     made = []
     if (folder / "means.csv").is_file():
         means = pd.read_csv(folder / "means.csv")
         summary = pd.read_csv(folder / "summary.csv")
         for metric in (primary, "worst_approach_delay_s"):
-            made.append(plots.controller_means(means, metric, out / f"means_{metric}.png"))
-        made.append(plots.paired_differences(summary, primary, out / "paired_primary.png"))
-    if (folder / "tuning" / "settings.csv").is_file():
-        table = pd.read_csv(folder / "tuning" / "settings.csv")
-        made.append(plots.sensitivity(table, out / "sensitivity.png"))
+            made.append(plots.controller_means(
+                means, metric, out / f"means_{metric}.png", plan.labels, proposed))
+        made.append(plots.paired_differences(
+            summary, primary, out / "paired_primary.png", plan.labels, proposed))
+    for variant in tuned_variants(plan):
+        path = folder / "tuning" / variant.name / "settings.csv"
+        if not path.is_file() or len(variant.tune) != 2:
+            continue
+        keys = [key for _, key, _ in variant.tune]
+        made.append(plots.sensitivity(
+            pd.read_csv(path), out / f"sensitivity_{variant.name}.png", keys[0], keys[1],
+            variant.label, dict(zip(keys, default_setting(plan, variant))),
+        ))
     if (folder / "solvers" / "t2_summary.csv").is_file():
         curves = pd.read_csv(folder / "solvers" / "t1_curves.csv")
         made.append(plots.convergence(curves, out / "t1_convergence.png"))
@@ -264,11 +324,15 @@ def figures(plan: ExperimentPlan, root: Path) -> None:
 
 
 # -------------------------------------------------------------- provenance
-def save_provenance(plan: ExperimentPlan, folder: Path, paths: list[Path]) -> None:
+def save_provenance(plan: ExperimentPlan, folder: Path) -> None:
     folder.mkdir(parents=True, exist_ok=True)
     resolved = {
-        name: config_to_dict(load_config(*paths, ROOT / "configs" / "scenarios" / f"{name}.yaml"))
-        for name in plan.scenarios
+        name: {
+            scenario: config_to_dict(run_config(
+                plan.base_configs, variant_spec(plan.variants[name], scenario, 0)))
+            for scenario in plan.scenarios
+        }
+        for name in plan.controllers
     }
     (folder / "config.yaml").write_text(
         yaml.safe_dump(
@@ -304,7 +368,7 @@ def _command(command: list[str]) -> str:
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Run the OptiTraffic experiments.")
-    parser.add_argument("--config", default=ROOT / "configs" / "experiments.yaml")
+    parser.add_argument("--config", default=ROOT / "configs" / "experiments_m9b.yaml")
     parser.add_argument("--stage", choices=(*STAGES, "all"), required=True)
     parser.add_argument("--workers", type=int, help="override the number of parallel runs")
     args = parser.parse_args(argv)

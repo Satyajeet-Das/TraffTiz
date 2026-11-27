@@ -8,6 +8,7 @@ plotted number is also in the CSV file the figure is made from.
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from pathlib import Path
 
 import matplotlib
@@ -21,12 +22,6 @@ INK, MUTED, GRID = "#191919", "#666666", "#e6e6e6"
 ACCENT, BASE = "#257de0", "#8c8c8c"
 SERIES = ("#257de0", "#f47230", "#00b894")
 MARKERS = ("o", "s", "^")
-CONTROLLERS = {
-    "adaptive": "Adaptive",
-    "queue_proportional": "Queue-proportional",
-    "fixed_calibrated": "Fixed calibrated",
-    "fixed_equal": "Fixed equal",
-}
 SCENARIOS = {
     "low": "Low", "medium": "Medium", "high": "High",
     "ns_dominant": "NS dominant", "ew_dominant": "EW dominant", "changing": "Changing",
@@ -35,6 +30,10 @@ SOLVERS = {
     "gradient_descent": "Gradient descent", "projected_gradient": "Projected gradient",
     "momentum": "Momentum", "newton": "Newton", "bfgs": "BFGS",
     "conjugate_gradient": "Conjugate gradient", "subgradient": "Subgradient",
+}
+NAMES = {
+    "beta": "β", "window_s": "window (s)", "max_gap_s": "max gap (s)",
+    "detector_gap_s": "detector gap (s)",
 }
 METRIC_LABELS = {
     "avg_total_wait_s": "Waiting per vehicle, including waiting to enter (s)",
@@ -59,20 +58,27 @@ def _save(figure, path: Path) -> Path:
     return path
 
 
-def controller_means(means: pd.DataFrame, metric: str, path: Path) -> Path:
-    """One panel per scenario: mean and 95% interval for each controller."""
+def controller_means(
+    means: pd.DataFrame, metric: str, path: Path, labels: Mapping[str, str], proposed: str
+) -> Path:
+    """One panel per scenario: mean and 95% interval for each controller.
+
+    `labels` gives the controllers in drawing order; `proposed` is highlighted.
+    """
     _style()
     data = means[means["metric"] == metric]
     scenarios = [s for s in SCENARIOS if s in set(data["scenario"])]
-    figure, axes = plt.subplots(2, 3, figsize=(10, 5), sharey=True, layout="constrained")
-    order = list(CONTROLLERS)
+    order = [c for c in labels if c in set(data["controller"])]
+    figure, axes = plt.subplots(
+        2, 3, figsize=(10, 2.2 + 0.42 * len(order)), sharey=True, layout="constrained"
+    )
     for axis, scenario in zip(axes.flat, scenarios):
         part = data[data["scenario"] == scenario].set_index("controller")
         for row, controller in enumerate(order):
             if controller not in part.index:
                 continue
             item = part.loc[controller]
-            colour = ACCENT if controller == "adaptive" else BASE
+            colour = ACCENT if controller == proposed else BASE
             axis.errorbar(
                 item["mean"], row, xerr=[[item["mean"] - item["ci_low"]],
                                          [item["ci_high"] - item["mean"]]],
@@ -82,7 +88,7 @@ def controller_means(means: pd.DataFrame, metric: str, path: Path) -> Path:
                           textcoords="offset points", va="center", color=MUTED, fontsize=8)
         axis.set_title(SCENARIOS[scenario])
         axis.set_xlim(left=0, right=float(part["ci_high"].max()) * 1.22)
-        axis.set_yticks(range(len(order)), [CONTROLLERS[c] for c in order])
+        axis.set_yticks(range(len(order)), [labels[c] for c in order])
         axis.set_ylim(len(order) - 0.5, -0.5)
         axis.grid(axis="y", visible=False)
     figure.supxlabel(METRIC_LABELS.get(metric, metric) + ", mean and 95% interval; lower is better",
@@ -90,16 +96,21 @@ def controller_means(means: pd.DataFrame, metric: str, path: Path) -> Path:
     return _save(figure, path)
 
 
-def paired_differences(summary: pd.DataFrame, metric: str, path: Path) -> Path:
-    """Adaptive minus each baseline, per scenario, with 95% intervals."""
+def paired_differences(
+    summary: pd.DataFrame, metric: str, path: Path, labels: Mapping[str, str], proposed: str
+) -> Path:
+    """Proposed minus each baseline, per scenario, with 95% intervals."""
     _style()
     data = summary[summary["metric"] == metric]
-    baselines = [c for c in CONTROLLERS if c in set(data["baseline"])]
+    baselines = [c for c in labels if c in set(data["baseline"])]
     scenarios = [s for s in SCENARIOS if s in set(data["scenario"])]
+    columns = min(3, len(baselines))
+    rows = -(-len(baselines) // columns)
     figure, axes = plt.subplots(
-        1, len(baselines), figsize=(10, 3.2), sharey=True, layout="constrained", squeeze=False
+        rows, columns, figsize=(10, 0.8 + 2.4 * rows), sharey=True, layout="constrained",
+        squeeze=False,
     )
-    for axis, baseline in zip(axes[0], baselines):
+    for axis, baseline in zip(axes.flat, baselines):
         part = data[data["baseline"] == baseline].set_index("scenario")
         for row, scenario in enumerate(scenarios):
             item = part.loc[scenario]
@@ -112,32 +123,42 @@ def paired_differences(summary: pd.DataFrame, metric: str, path: Path) -> Path:
                 markersize=6, elinewidth=2, capsize=3,
             )
         axis.axvline(0, color=INK, linewidth=1)
-        axis.set_title(f"vs {CONTROLLERS[baseline]}")
+        axis.set_title(f"vs {labels[baseline]}")
         axis.set_yticks(range(len(scenarios)), [SCENARIOS[s] for s in scenarios])
         axis.set_ylim(len(scenarios) - 0.5, -0.5)
         axis.grid(axis="y", visible=False)
         axis.margins(x=0.15)
+    for axis in axes.flat[len(baselines):]:
+        axis.set_visible(False)
     figure.supxlabel(
-        f"Adaptive minus baseline, {METRIC_LABELS.get(metric, metric)}. Left of zero: adaptive "
-        "better.\nHollow marker: no clear difference after Holm correction. Scales differ "
-        "between panels.", fontsize=9)
+        f"{labels[proposed]} minus baseline: {METRIC_LABELS.get(metric, metric).lower()}. "
+        f"Left of zero is better for {labels[proposed]}.\nHollow marker: no clear difference "
+        "after Holm correction. Scales differ between panels.", fontsize=9)
     return _save(figure, path)
 
 
-def sensitivity(table: pd.DataFrame, path: Path) -> Path:
-    """Tuning score against beta, one line per observation window."""
+def sensitivity(
+    table: pd.DataFrame, path: Path, x: str, line: str, title: str,
+    default: Mapping[str, float],
+) -> Path:
+    """Tuning score against the first tuned key, one line per value of the second."""
     _style()
     figure, axis = plt.subplots(figsize=(7, 3.8), layout="constrained")
-    betas = sorted(table["beta"].unique())
-    for index, window in enumerate(sorted(table["window_s"].unique())):
-        part = table[table["window_s"] == window].set_index("beta").reindex(betas)
-        axis.plot(range(len(betas)), part["score"], color=SERIES[index], linewidth=2,
-                  marker=MARKERS[index], markersize=7, label=f"window {window:.0f} s")
+    values = sorted(table[x].unique())
+    lines = sorted(table[line].unique())
+    if len(lines) > len(SERIES):
+        raise ValueError(f"at most {len(SERIES)} lines can be told apart; got {len(lines)}")
+    for index, level in enumerate(lines):
+        part = table[table[line] == level].set_index(x).reindex(values)
+        axis.plot(range(len(values)), part["score"], color=SERIES[index], linewidth=2,
+                  marker=MARKERS[index], markersize=7,
+                  label=f"{NAMES.get(line, line)} {level:g}")
     axis.axhline(1.0, color=MUTED, linewidth=1)
-    axis.set_xticks(range(len(betas)), [f"{b:g}" for b in betas])
-    axis.set_xlabel("β (values spaced evenly, not to scale)")
-    axis.set_ylabel("Waiting relative to β = 0.1, window 180 s")
-    axis.set_title("Adaptive controller on tuning seeds; lower is better")
+    axis.set_xticks(range(len(values)), [f"{v:g}" for v in values])
+    axis.set_xlabel(f"{NAMES.get(x, x)} (values spaced evenly, not to scale)")
+    described = ", ".join(f"{NAMES.get(k, k)} {v:g}" for k, v in default.items())
+    axis.set_ylabel(f"Waiting relative to\n{described}")
+    axis.set_title(f"{title}, tuning seeds; lower is better")
     axis.legend(frameon=False)
     return _save(figure, path)
 

@@ -14,6 +14,7 @@ from optitraffic.config import ConfigError, load_config  # noqa: E402
 from optitraffic.evaluation import analysis, plots, solver_study  # noqa: E402
 from optitraffic.evaluation.metrics import (  # noqa: E402
     control_metrics,
+    observed_metrics,
     read_tripinfo,
     traffic_metrics,
 )
@@ -25,16 +26,27 @@ from optitraffic.evaluation.runner import (  # noqa: E402
 )
 from optitraffic.evaluation.settings import load_plan  # noqa: E402
 from optitraffic.evaluation.statistics import holm, mean_interval, paired_comparison  # noqa: E402
-from optitraffic.experiments import evaluation_specs, tuning_specs  # noqa: E402
+from optitraffic.experiments import (  # noqa: E402
+    default_setting,
+    evaluation_specs,
+    tuned_variants,
+    tuning_specs,
+)
 from optitraffic.integration.queue_monitor import QueueMonitor  # noqa: E402
 from optitraffic.simulation.routes import Trip  # noqa: E402
-from optitraffic.types import CycleRecord, TimingPlan, TrafficState  # noqa: E402
+from optitraffic.types import (  # noqa: E402
+    CycleRecord,
+    ObservedGreen,
+    TimingPlan,
+    TrafficState,
+)
 
 # The pinned Matplotlib uses names that newer pyparsing releases deprecate.
 pytestmark = pytest.mark.filterwarnings("ignore::DeprecationWarning")
 
 ROOT = Path(__file__).resolve().parents[1]
 PLAN = ROOT / "configs" / "experiments.yaml"
+PLAN_B = ROOT / "configs" / "experiments_m9b.yaml"
 
 
 def config():
@@ -206,12 +218,13 @@ def test_tuning_choice_uses_relative_scores_and_skips_incomplete_settings():
         for scenario, value in (("low", low), ("high", high)):
             rows.append({"beta": beta, "window_s": 180.0, "scenario": scenario,
                          "wait": value, "status": status})
-    table = analysis.tuning_table(pd.DataFrame(rows), "wait", (0.1, 180.0))
-    assert analysis.choose_setting(table, (0.1, 180.0)) == (0.2, 180.0)
+    keys = ("beta", "window_s")
+    table = analysis.tuning_table(pd.DataFrame(rows), "wait", keys, (0.1, 180.0))
+    assert analysis.choose_setting(table, keys, (0.1, 180.0)) == (0.2, 180.0)
     score = table.set_index("beta").loc[0.2, "score"]
     assert score == pytest.approx((0.5 * 1.1) ** 0.5)
     with pytest.raises(ValueError):
-        analysis.tuning_table(pd.DataFrame(rows), "wait", (0.4, 180.0))
+        analysis.tuning_table(pd.DataFrame(rows), "wait", keys, (0.4, 180.0))
 
 
 # ----------------------------------------------------------------------- plan
@@ -221,9 +234,67 @@ def test_experiment_plan():
         "fixed_equal", "fixed_calibrated", "queue_proportional", "adaptive")
     specs = evaluation_specs(plan)
     assert len(specs) == 480 and len({s.run_id for s in specs}) == 480
-    tuning = tuning_specs(plan)
-    assert len(tuning) == 30 * 6 * 5
+    adaptive = plan.variants["adaptive"]
+    tuning = tuning_specs(plan, adaptive)
+    assert len(tuning) == 30 * 6 * 5 and not any(s.settings for s in tuning)
     assert not {s.seed for s in tuning} & {s.seed for s in specs}
+    assert default_setting(plan, adaptive) == (0.1, 180.0)
+
+
+def test_second_experiment_plan():
+    plan = load_plan(PLAN_B, ROOT)
+    specs = evaluation_specs(plan)
+    assert len(specs) == 7 * 6 * 20 and len({s.run_id for s in specs}) == len(specs)
+    assert {v.name for v in tuned_variants(plan)} == {"actuated", "adaptive_own_green"}
+    old = load_plan(PLAN, ROOT)
+    assert not set(plan.evaluation["seeds"]) & {
+        *old.evaluation["seeds"], *plan.tuning["seeds"]}
+    # The variant name labels the results; the controller and settings come with it.
+    spec = next(s for s in specs if s.name == "queue_proportional_own_green")
+    assert spec.controller == "queue_proportional" and not spec.settings
+    config = run_config(plan.base_configs, spec)
+    assert config.estimation.queue_sampling == "own_green"
+    tuning = tuning_specs(plan, plan.variants["adaptive_own_green"])
+    assert len(tuning) == 900
+    assert all(run_config(plan.base_configs, s).estimation.queue_sampling == "own_green"
+               for s in tuning[::97])
+    assert len(tuning_specs(plan, plan.variants["actuated"])) == 15 * 6 * 5
+    # The unchanged controller keeps the settings chosen in the first experiment.
+    before = run_config(plan.base_configs, next(s for s in specs if s.name == "adaptive"))
+    assert (before.model.beta, before.estimation.window_s) == (1.6, 90.0)
+    assert before.estimation.queue_sampling == "cycle_start"
+
+
+@pytest.mark.parametrize("old, new, message", [
+    ("controller: actuated", "controller: nobody", "unknown controller"),
+    ("    settings: configs/frozen_m9b_actuated.yaml\n", "", "settings file"),
+    ("actuated.max_gap_s:", "actuated.no_such_key:", "unknown key"),
+    ("queue_sampling: own_green, window_s: 90}", "queue_sampling: sometimes, window_s: 90}",
+     "queue_sampling"),
+    ("proposed: adaptive_own_green", "proposed: missing", "unknown variant"),
+])
+def test_plan_rejects_bad_variants(tmp_path, old, new, message):
+    text = PLAN_B.read_text(encoding="utf-8")
+    assert old in text
+    path = tmp_path / "plan.yaml"
+    path.write_text(text.replace(old, new, 1), encoding="utf-8")
+    with pytest.raises(ConfigError, match=message):
+        load_plan(path, ROOT)
+
+
+def test_observed_metrics_by_hand():
+    greens = [
+        ObservedGreen(0, 0.0, 21.0),   # before the measured period
+        ObservedGreen(1, 30.0, 80.0),  # longer than the 71 s displayed limit
+        ObservedGreen(0, 120.0, 31.0),
+        ObservedGreen(1, 160.0, 11.0),
+        ObservedGreen(0, 180.0, 41.0),
+    ]
+    m = observed_metrics(greens, config().signal, warmup_s=100)
+    assert (m["cycles"], m["fallbacks"], m["solver_calls"]) == (2, 0, 0)
+    assert m["mean_green_ns_s"] == 35.0  # effective green is 1 s shorter
+    assert m["infeasible_applied"] == 1
+    assert set(m) == set(control_metrics((), config().signal, 0))
 
 
 def test_plan_rejects_shared_seeds(tmp_path):
@@ -286,9 +357,13 @@ def test_result_figures_are_written(tmp_path):
     summary = analysis.paired_table(
         runs, "adaptive", ["fixed_equal"], ["avg_total_wait_s"], 0.95)
     settings = pd.DataFrame({"beta": [0.1, 0.2], "window_s": [180.0, 180.0], "score": [1.0, 0.9]})
+    labels = {"fixed_equal": "Fixed equal", "adaptive": "Adaptive"}
     for path in (
-        plots.controller_means(means, "avg_total_wait_s", tmp_path / "a.png"),
-        plots.paired_differences(summary, "avg_total_wait_s", tmp_path / "b.png"),
-        plots.sensitivity(settings, tmp_path / "c.png"),
+        plots.controller_means(
+            means, "avg_total_wait_s", tmp_path / "a.png", labels, "adaptive"),
+        plots.paired_differences(
+            summary, "avg_total_wait_s", tmp_path / "b.png", labels, "adaptive"),
+        plots.sensitivity(settings, tmp_path / "c.png", "beta", "window_s", "Adaptive",
+                          {"beta": 0.1, "window_s": 180.0}),
     ):
         assert path.stat().st_size > 0
