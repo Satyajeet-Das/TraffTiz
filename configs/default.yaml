@@ -23,6 +23,7 @@ solver:
   name: projected_gradient
   tolerance: 1.0e-6
   max_iterations: 500
+  sgd_max_iterations: 100            # SGD online: stops here, well inside the time budget
   time_budget_s: 0.1                 # for one whole decision (NFR-03)
   solver_budget_fraction: 0.8        # share of that budget the solver may use
   accept_unconverged: true           # use a feasible, improved but unconverged result

@@ -1,0 +1,404 @@
+experiment:
+  experiment_id: m9
+  base_configs:
+  - configs/default.yaml
+  frozen_config: configs/frozen.yaml
+  workers: 6
+  scenarios:
+  - low
+  - medium
+  - high
+  - ns_dominant
+  - ew_dominant
+  - changing
+  tuning:
+    seeds:
+    - 1
+    - 2
+    - 3
+    - 4
+    - 5
+    beta:
+    - 0.0
+    - 0.025
+    - 0.05
+    - 0.1
+    - 0.2
+    - 0.4
+    - 0.8
+    - 1.6
+    - 3.2
+    - 6.4
+    window_s:
+    - 90
+    - 180
+    - 360
+  evaluation:
+    seeds:
+    - 101
+    - 102
+    - 103
+    - 104
+    - 105
+    - 106
+    - 107
+    - 108
+    - 109
+    - 110
+    - 111
+    - 112
+    - 113
+    - 114
+    - 115
+    - 116
+    - 117
+    - 118
+    - 119
+    - 120
+    proposed: adaptive
+    baselines:
+    - fixed_equal
+    - fixed_calibrated
+    - queue_proportional
+    primary_metric: avg_total_wait_s
+    metrics:
+    - avg_total_wait_s
+    - avg_waiting_s
+    - avg_insertion_delay_s
+    - avg_travel_time_s
+    - avg_delay_s
+    - worst_approach_delay_s
+    - avg_queue_veh
+    - max_queue_veh
+    - throughput_veh
+    - stops_per_vehicle
+    confidence: 0.95
+  verify:
+    runs: 6
+    seed: 1
+  solver_study:
+    seed: 7
+    max_iterations: 500
+    sgd_states: 100
+    curve_states: 100
+    penalty_rho:
+    - 1
+    - 10
+    - 100
+    penalty_states: 200
+    penalty_max_iterations: 20000
+    penalty_grid_checks: 3
+    quadratic_dimensions:
+    - 2
+    - 5
+    - 10
+    quadratic_conditions:
+    - 10
+    - 100
+    quadratic_problems: 20
+    rosenbrock_max_iterations: 50000
+resolved:
+  low:
+    signal:
+      cycle_s: 90
+      yellow_s: 3
+      all_red_s: 2
+      g_min_s: 10
+      g_max_s: 70
+      green_lost_s: 1
+    model:
+      saturation_flow_vph:
+      - 1860.0
+      - 1860.0
+      queue_weight:
+      - 1.0
+      - 1.0
+      beta: 1.6
+    estimation:
+      window_s: 90.0
+      include_pending: true
+      pending_in_queue: true
+    solver:
+      name: projected_gradient
+      tolerance: 1.0e-06
+      max_iterations: 500
+      time_budget_s: 0.1
+      solver_budget_fraction: 0.8
+      accept_unconverged: true
+      sgd_max_iterations: 100
+    simulation:
+      step_length_s: 1.0
+      warmup_s: 600.0
+      duration_s: 3600.0
+    network:
+      tls_id: C
+      phase_movements:
+      - - - N_in
+          - S_out
+        - - S_in
+          - N_out
+      - - - E_in
+          - W_out
+        - - W_in
+          - E_out
+    scenario:
+      name: low
+      segments:
+      - start_fraction: 0.0
+        arrival_rate:
+        - 0.05
+        - 0.05
+  medium:
+    signal:
+      cycle_s: 90
+      yellow_s: 3
+      all_red_s: 2
+      g_min_s: 10
+      g_max_s: 70
+      green_lost_s: 1
+    model:
+      saturation_flow_vph:
+      - 1860.0
+      - 1860.0
+      queue_weight:
+      - 1.0
+      - 1.0
+      beta: 1.6
+    estimation:
+      window_s: 90.0
+      include_pending: true
+      pending_in_queue: true
+    solver:
+      name: projected_gradient
+      tolerance: 1.0e-06
+      max_iterations: 500
+      time_budget_s: 0.1
+      solver_budget_fraction: 0.8
+      accept_unconverged: true
+      sgd_max_iterations: 100
+    simulation:
+      step_length_s: 1.0
+      warmup_s: 600.0
+      duration_s: 3600.0
+    network:
+      tls_id: C
+      phase_movements:
+      - - - N_in
+          - S_out
+        - - S_in
+          - N_out
+      - - - E_in
+          - W_out
+        - - W_in
+          - E_out
+    scenario:
+      name: medium
+      segments:
+      - start_fraction: 0.0
+        arrival_rate:
+        - 0.12
+        - 0.12
+  high:
+    signal:
+      cycle_s: 90
+      yellow_s: 3
+      all_red_s: 2
+      g_min_s: 10
+      g_max_s: 70
+      green_lost_s: 1
+    model:
+      saturation_flow_vph:
+      - 1860.0
+      - 1860.0
+      queue_weight:
+      - 1.0
+      - 1.0
+      beta: 1.6
+    estimation:
+      window_s: 90.0
+      include_pending: true
+      pending_in_queue: true
+    solver:
+      name: projected_gradient
+      tolerance: 1.0e-06
+      max_iterations: 500
+      time_budget_s: 0.1
+      solver_budget_fraction: 0.8
+      accept_unconverged: true
+      sgd_max_iterations: 100
+    simulation:
+      step_length_s: 1.0
+      warmup_s: 600.0
+      duration_s: 3600.0
+    network:
+      tls_id: C
+      phase_movements:
+      - - - N_in
+          - S_out
+        - - S_in
+          - N_out
+      - - - E_in
+          - W_out
+        - - W_in
+          - E_out
+    scenario:
+      name: high
+      segments:
+      - start_fraction: 0.0
+        arrival_rate:
+        - 0.2
+        - 0.2
+  ns_dominant:
+    signal:
+      cycle_s: 90
+      yellow_s: 3
+      all_red_s: 2
+      g_min_s: 10
+      g_max_s: 70
+      green_lost_s: 1
+    model:
+      saturation_flow_vph:
+      - 1860.0
+      - 1860.0
+      queue_weight:
+      - 1.0
+      - 1.0
+      beta: 1.6
+    estimation:
+      window_s: 90.0
+      include_pending: true
+      pending_in_queue: true
+    solver:
+      name: projected_gradient
+      tolerance: 1.0e-06
+      max_iterations: 500
+      time_budget_s: 0.1
+      solver_budget_fraction: 0.8
+      accept_unconverged: true
+      sgd_max_iterations: 100
+    simulation:
+      step_length_s: 1.0
+      warmup_s: 600.0
+      duration_s: 3600.0
+    network:
+      tls_id: C
+      phase_movements:
+      - - - N_in
+          - S_out
+        - - S_in
+          - N_out
+      - - - E_in
+          - W_out
+        - - W_in
+          - E_out
+    scenario:
+      name: ns_dominant
+      segments:
+      - start_fraction: 0.0
+        arrival_rate:
+        - 0.28
+        - 0.1
+  ew_dominant:
+    signal:
+      cycle_s: 90
+      yellow_s: 3
+      all_red_s: 2
+      g_min_s: 10
+      g_max_s: 70
+      green_lost_s: 1
+    model:
+      saturation_flow_vph:
+      - 1860.0
+      - 1860.0
+      queue_weight:
+      - 1.0
+      - 1.0
+      beta: 1.6
+    estimation:
+      window_s: 90.0
+      include_pending: true
+      pending_in_queue: true
+    solver:
+      name: projected_gradient
+      tolerance: 1.0e-06
+      max_iterations: 500
+      time_budget_s: 0.1
+      solver_budget_fraction: 0.8
+      accept_unconverged: true
+      sgd_max_iterations: 100
+    simulation:
+      step_length_s: 1.0
+      warmup_s: 600.0
+      duration_s: 3600.0
+    network:
+      tls_id: C
+      phase_movements:
+      - - - N_in
+          - S_out
+        - - S_in
+          - N_out
+      - - - E_in
+          - W_out
+        - - W_in
+          - E_out
+    scenario:
+      name: ew_dominant
+      segments:
+      - start_fraction: 0.0
+        arrival_rate:
+        - 0.1
+        - 0.28
+  changing:
+    signal:
+      cycle_s: 90
+      yellow_s: 3
+      all_red_s: 2
+      g_min_s: 10
+      g_max_s: 70
+      green_lost_s: 1
+    model:
+      saturation_flow_vph:
+      - 1860.0
+      - 1860.0
+      queue_weight:
+      - 1.0
+      - 1.0
+      beta: 1.6
+    estimation:
+      window_s: 90.0
+      include_pending: true
+      pending_in_queue: true
+    solver:
+      name: projected_gradient
+      tolerance: 1.0e-06
+      max_iterations: 500
+      time_budget_s: 0.1
+      solver_budget_fraction: 0.8
+      accept_unconverged: true
+      sgd_max_iterations: 100
+    simulation:
+      step_length_s: 1.0
+      warmup_s: 600.0
+      duration_s: 3600.0
+    network:
+      tls_id: C
+      phase_movements:
+      - - - N_in
+          - S_out
+        - - S_in
+          - N_out
+      - - - E_in
+          - W_out
+        - - W_in
+          - E_out
+    scenario:
+      name: changing
+      segments:
+      - start_fraction: 0.0
+        arrival_rate:
+        - 0.28
+        - 0.1
+      - start_fraction: 0.5
+        arrival_rate:
+        - 0.1
+        - 0.28

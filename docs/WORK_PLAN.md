@@ -112,16 +112,16 @@ Build in this order; each ships with tests before the next starts.
 **Exit:** a full run completes for every scenario; plans change only at cycle boundaries; all fallbacks have logged reasons. ✅ Met — [results](M8_ADAPTIVE.md).
 
 ### M9 — Experiments (FR-10)
-- [ ] Metrics from tripinfo and per-step data
-- [ ] Batch runner, resumable
-- [ ] Tune parameters on seeds 1–5, then freeze config
-- [ ] Run the evaluation matrix on seeds 101–120
-- [ ] Solver comparison T1–T3
-- [ ] β and observation-window sensitivity sweeps
-- [ ] Optional: actuated baseline
-- [ ] Paired statistics and figures
+- [x] Metrics from tripinfo and per-step data
+- [x] Batch runner, resumable
+- [x] Tune parameters on seeds 1–5, then freeze config
+- [x] Run the evaluation matrix on seeds 101–120
+- [x] Solver comparison T1–T3
+- [x] β and observation-window sensitivity sweeps (joint grid on tuning seeds)
+- [ ] Optional: actuated baseline (not done)
+- [x] Paired statistics and figures
 
-**Exit:** every run accounted for (done, failed or invalid); rerunning a sample reproduces its metrics.
+**Exit:** every run accounted for (done, failed or invalid); rerunning a sample reproduces its metrics. ✅ Met — [results](M9_RESULTS.md).
 
 ### M10 — Report and demonstration
 - [ ] Report: formulation, algorithms, experimental design, results, limitations

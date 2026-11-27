@@ -362,7 +362,8 @@ Use `--tripinfo-output.write-unfinished` so vehicles still in the network are co
 ### 8.2 Experiment protocol
 
 - *Default* run: 3600 s measured after a 600 s warm-up.
-- Tuning seeds 1–5; evaluation seeds 101–120. Tune baselines and adaptive parameters with equal care.
+- Tuning seeds 1–5; evaluation seeds 101–120. Tune baselines and adaptive parameters with equal care (as designed, the baselines have no free parameters).
+- Primary metric, fixed before evaluation: waiting time per vehicle including waiting to enter. The adaptive β and window are chosen by the smallest geometric mean over scenarios, relative to the defaults. Chosen values are in `configs/frozen.yaml`; the defaults above are the starting values.
 - Matrix: 6 scenarios × 4 controllers × 20 seeds = 480 runs, plus the solver comparison.
 - Statistics: per-seed paired differences, mean with 95% confidence interval, Wilcoxon signed-rank test, Holm correction across comparisons.
 

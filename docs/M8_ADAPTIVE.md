@@ -55,7 +55,7 @@ On the `low` scenario one decision ran out of time. When both queues can be clea
 
 ## Limitations and open points for M9
 
-- **SGD is not reproducible online.** It always stops on wall-clock time, so the number of iterations depends on the machine. Before M9, either lower its iteration limit until the limit binds first, or study it only offline.
+- **SGD was not reproducible online** (it stopped on wall-clock time). Resolved in M9: online it stops after `sgd_max_iterations: 100`, well inside the time budget. The table above predates this.
 - Momentum's slowest decision (64 ms) is close to the solver's 80 ms share.
 - The time budget is checked between solver iterations and after the decision; a single step that never returned would not be interrupted.
-- Parameters (β, weights, window, solver settings) have not been tuned.
+- Parameters had not been tuned at this stage; β and the window were tuned in M9.

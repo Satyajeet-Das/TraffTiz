@@ -120,6 +120,7 @@ class SolverParams:
     time_budget_s: float  # for one whole decision
     solver_budget_fraction: float = 0.8  # share of the budget the solver may use
     accept_unconverged: bool = True  # use a feasible, improved but unconverged result
+    sgd_max_iterations: int = 100  # SGD never converges, so this must end it reproducibly
 
 
 @dataclass(frozen=True)

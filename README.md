@@ -2,7 +2,7 @@
 
 Numerical optimization for adaptive traffic signal timing, studied in simulation.
 
-> **Status:** project setup (M2) and the queue model, objective functions (M5) all eight optimization algorithms (M6), the simulated intersection (M3), traffic data collection (M4), signal control with three baseline controllers (M7) and the optimization-based controller (M8) are complete. The mathematics has been [checked numerically](docs/M1_VERIFICATION.md) and [supervisor approval](docs/M1_SUPERVISOR_REVIEW.md) is pending. The comparison experiments are not implemented yet.
+> **Status:** project setup (M2) and the queue model, objective functions (M5), all eight optimization algorithms (M6), the simulated intersection (M3), traffic data collection (M4), signal control with three baseline controllers (M7), the optimization-based controller (M8) and the experiments (M9) are complete. The mathematics has been [checked numerically](docs/M1_VERIFICATION.md) and [supervisor approval](docs/M1_SUPERVISOR_REVIEW.md) is pending. The final report (M10) is not written yet.
 
 Try after setup: `python examples/reference_cases.py` and `python examples/compare_solvers.py`
 
@@ -74,7 +74,7 @@ Requires Python 3.12. The commands are for Windows PowerShell; SUMO is installed
 ```powershell
 py -3.12 -m venv .venv
 .\.venv\Scripts\Activate.ps1
-pip install -e ".[dev,sim]"
+pip install -e ".[dev,sim,eval]"
 ```
 
 ## Check the installation
@@ -86,7 +86,13 @@ python scripts/check_sumo.py      # start and stop SUMO through TraCI
 python verification/m1_checks.py  # check the mathematics
 ```
 
-Instructions for running experiments will be added once they exist.
+## Experiments
+
+```powershell
+python -m optitraffic.experiments --stage all   # about 90 minutes
+```
+
+On unseen traffic the optimization-based controller waited less than the queue-proportional controller in 5 of 6 scenarios, but less than the demand-calibrated fixed signal in only 2 of 6. See the [results](docs/M9_RESULTS.md).
 
 ## Scope and limitations
 

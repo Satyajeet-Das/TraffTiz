@@ -19,6 +19,11 @@ sim = [
     "sumolib==1.28.0",
     "traci==1.28.0",
 ]
+eval = [
+    "matplotlib==3.10.0",
+    "pandas==2.2.3",
+    "scipy==1.15.1",
+]
 dev = [
     "pytest==8.4.1",
 ]

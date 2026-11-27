@@ -106,6 +106,9 @@ def build_config(data: Mapping[str, Any]) -> Config:
         time_budget_s=_number(v["time_budget_s"], "solver.time_budget_s", positive=True),
         solver_budget_fraction=fraction,
         accept_unconverged=v["accept_unconverged"],
+        sgd_max_iterations=_integer(
+            v["sgd_max_iterations"], "solver.sgd_max_iterations", minimum=1
+        ),
     )
 
     t = data["simulation"]

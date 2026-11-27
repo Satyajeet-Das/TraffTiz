@@ -61,8 +61,14 @@ class AdaptiveController:
         self.seed = seed
         self._factory = solver_factory
         # The rest of the decision budget covers rounding and checks.
+        limit = (
+            config.solver.sgd_max_iterations
+            if self.solver_name == "sgd"
+            else config.solver.max_iterations
+        )
         self._params = replace(
             config.solver,
+            max_iterations=limit,
             time_budget_s=config.solver.time_budget_s * config.solver.solver_budget_fraction,
         )
 
