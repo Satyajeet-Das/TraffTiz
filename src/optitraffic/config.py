@@ -78,8 +78,12 @@ def build_config(data: Mapping[str, Any]) -> Config:
         beta=_number(m["beta"], "model.beta", positive=False),
     )
 
+    e = data["estimation"]
+    if not isinstance(e["include_pending"], bool):
+        raise ConfigError(f"estimation.include_pending must be true or false; got {e['include_pending']!r}")
     estimation = EstimationParams(
-        window_s=_number(data["estimation"]["window_s"], "estimation.window_s", positive=True),
+        window_s=_number(e["window_s"], "estimation.window_s", positive=True),
+        include_pending=e["include_pending"],
     )
 
     v = data["solver"]

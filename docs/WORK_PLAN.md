@@ -64,11 +64,11 @@ Each milestone is done when its exit criteria pass and tests are green.
 **Exit:** vehicles enter and leave; no collisions or teleports in all scenarios; same seed gives an identical route file. ✅ Met.
 
 ### M4 — State collection (FR-02, FR-03)
-- [ ] TraCI client and direction mapping check (minimal client and link check exist from M3)
-- [ ] State collector with validity handling
-- [ ] Sliding-window demand estimator with warm-up behaviour
+- [x] TraCI client and direction mapping check
+- [x] State collector with validity handling
+- [x] Sliding-window demand estimator with warm-up behaviour
 
-**Exit:** estimates match generated demand within sampling error; invalid-input tests pass.
+**Exit:** estimates match generated demand within sampling error; invalid-input tests pass. ✅ Met — [results](M4_STATE_COLLECTION.md).
 
 ### M5 — Model and objective (FR-04, FR-05)
 - [x] Queue prediction

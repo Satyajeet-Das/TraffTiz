@@ -103,6 +103,7 @@ def _valid(value: float, positive: bool) -> bool:
 @dataclass(frozen=True)
 class EstimationParams:
     window_s: float
+    include_pending: bool
 
 
 @dataclass(frozen=True)
@@ -160,6 +161,39 @@ class DemandSegment:
 class ScenarioParams:
     name: str
     segments: tuple[DemandSegment, ...]
+
+
+@dataclass(frozen=True)
+class ApproachState:
+    """Measurements for one incoming edge."""
+
+    edge: str
+    queue: float  # halting vehicles on the road
+    arrival_rate: float  # veh/s
+    vehicle_count: int
+    waiting_time: float  # s, summed over vehicles on the road
+    pending: int  # vehicles waiting to enter because the road is full
+
+
+@dataclass(frozen=True)
+class TrafficState:
+    """Measurements at one decision instant. Pairs are in (NS, EW) order.
+
+    `queue` and `arrival_rate` belong to each phase's critical approach (D3);
+    counts, waiting time and pending vehicles are summed over the phase. If
+    `valid` is False the numbers must not be used for control.
+    """
+
+    sim_time: float
+    queue: tuple[float, float]
+    arrival_rate: tuple[float, float]
+    vehicle_count: tuple[int, int]
+    waiting_time: tuple[float, float]
+    pending: tuple[int, int]
+    signal_state: str
+    approaches: tuple[ApproachState, ...]
+    valid: bool
+    issues: tuple[str, ...]
 
 
 @dataclass(frozen=True)
