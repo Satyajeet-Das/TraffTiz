@@ -37,7 +37,8 @@ def discharge_counts(green: int, seed: int) -> list[int]:
     other = CYCLE_S - 10 - green
     config = replace(
         config,
-        signal=replace(config.signal, cycle_s=CYCLE_S, g_min_s=10, g_max_s=130),
+        # green_lost_s=0: the measurement is in terms of displayed green.
+        signal=replace(config.signal, cycle_s=CYCLE_S, g_min_s=10, g_max_s=130, green_lost_s=0),
         scenario=ScenarioParams("saturated", (DemandSegment(0.0, (SATURATING_RATE, 0.0)),)),
         simulation=replace(config.simulation, warmup_s=0.0, duration_s=float(CYCLE_S * 15)),
     )

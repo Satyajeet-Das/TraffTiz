@@ -44,6 +44,6 @@ A vehicle becomes visible 1–2 s after its scheduled departure (at `⌈depart/s
 
 `estimation.include_pending` is **true** by default. A real road sensor could not see vehicles that have not entered the road, so this relies on the study's assumption of perfect detection. All controllers receive the same information. Setting it to false gives the sensor-like behaviour in the table above.
 
-## Open for M7 and M8
+## Queue when the road is full
 
-The **queue** is still the number of halted vehicles on the road, which stops growing at roughly 33 when the road is full. The number waiting to enter is reported separately. Whether controllers add it to the queue needs deciding before M8.
+Halted vehicles on the road stop growing at roughly 33. **Decided and applied in M7:** vehicles waiting to enter are added to the queue (`estimation.pending_in_queue: true`). They are also still reported separately.

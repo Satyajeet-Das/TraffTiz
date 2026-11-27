@@ -128,6 +128,8 @@ class StateCollector:
             queue = self._measure(self.api.lane.getLastStepHaltingNumber, lanes, "queue", issues)
             count = self._measure(self.api.lane.getLastStepVehicleNumber, lanes, "vehicle count", issues)
             waiting = self._measure(self.api.lane.getWaitingTime, lanes, "waiting time", issues)
+            if self.config.estimation.pending_in_queue:
+                queue += self._pending[edge]
             approaches.append(ApproachState(
                 edge=edge,
                 queue=queue,

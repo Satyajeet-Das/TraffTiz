@@ -44,14 +44,17 @@ def stage_states(
 
 
 def cycle_stages(signal: SignalParams, green: tuple[int, int]) -> list[tuple[str, int]]:
-    """(stage, duration in s) for one cycle; stages of zero length are omitted."""
+    """(stage, duration in s) for one cycle; stages of zero length are omitted.
+
+    `green` is effective green; each displayed green is longer by the lost green.
+    """
     if sum(green) != signal.green_budget_s or not all(
         isinstance(g, int) and signal.g_min_s <= g <= signal.g_max_s for g in green
     ):
         raise ValueError(f"green times {green} are not a feasible whole-second plan")
     durations = (
-        green[0], signal.yellow_s, signal.all_red_s,
-        green[1], signal.yellow_s, signal.all_red_s,
+        signal.displayed_green_s(green[0]), signal.yellow_s, signal.all_red_s,
+        signal.displayed_green_s(green[1]), signal.yellow_s, signal.all_red_s,
     )
     return [(stage, d) for stage, d in zip(STAGES, durations) if d > 0]
 

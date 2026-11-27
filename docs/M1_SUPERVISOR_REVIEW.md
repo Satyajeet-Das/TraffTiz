@@ -16,7 +16,7 @@ $g_i$ green time of phase $i$ (North–South, East–West), $q_i$ queue, $\lambd
 
 **Planned algorithms:** gradient descent, projected gradient, momentum, stochastic gradient descent, Newton, BFGS, conjugate gradient, subgradient.
 
-**Current state:** formulation documented and checked numerically ([report](M1_VERIFICATION.md)). The model, the algorithms and the simulated intersection are built; adaptive control and experiments are not.
+**Current state:** formulation documented and checked numerically ([report](M1_VERIFICATION.md)). The model, the algorithms, the simulated intersection, signal control and three baseline controllers are built; adaptive control and experiments are not.
 
 ## 3. Decisions for your review
 
@@ -40,8 +40,8 @@ Each phase serves two approaches that move together. **Proposal:** use the appro
 ☐ Approve  ☐ Change  Comment:
 
 ### D4. Lost time
-**Proposal:** treat displayed green as effective green, with $L=2\times(\text{yellow}+\text{all-red})$.  
-**Measured since:** in the simulator, effective green is about 1 s shorter than displayed green.
+**Measured:** in the simulator, effective green is about 1 s shorter than displayed green.  
+**Proposal (applied):** display 1 s more than the effective green, with $L=2\times(\text{yellow}+\text{all-red}+1)=12$ s and a green budget of 78 s.
 
 ☐ Approve  ☐ Change  Comment:
 
@@ -58,7 +58,7 @@ $J$ adds terms with different units, so $\beta$ affects the answer. **Proposal:*
 
 ### D7. Counting vehicles outside a full road
 **Issue:** when a road is full, new vehicles cannot enter and road counts underestimate demand ([measurements](M4_STATE_COLLECTION.md)).  
-**Proposal:** also count vehicles waiting to enter. A real road sensor could not do this, so it is an assumption of perfect detection, applied equally to all controllers.
+**Proposal (applied):** also count vehicles waiting to enter, both as arrivals and in the queue. A real road sensor could not do this, so it is an assumption of perfect detection, applied equally to all controllers.
 
 ☐ Approve  ☐ Change  Comment:
 

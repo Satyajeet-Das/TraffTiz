@@ -96,12 +96,12 @@ Build in this order; each ships with tests before the next starts.
 **Exit:** every solver meets its oracle or known optimum within its stated tolerance, or the exclusion is justified in writing. ✅ Met.
 
 ### M7 — Baselines and signal control (FR-07, FR-08, FR-09)
-- [ ] Signal state machine
-- [ ] Validator and fallback
-- [ ] Fixed equal, fixed calibrated, queue-proportional controllers
-- [ ] `run.py` for a single run
+- [x] Signal state machine
+- [x] Validator and fallback
+- [x] Fixed equal, fixed calibrated, queue-proportional controllers
+- [x] `run.py` for a single run
 
-**Exit:** observed signal log shows correct sequence and durations; conflicting green never occurs; injected invalid plans trigger fallback.
+**Exit:** observed signal log shows correct sequence and durations; conflicting green never occurs; injected invalid plans trigger fallback. ✅ Met — [run tests](../tests/integration/test_control_run.py).
 
 ### M8 — Adaptive control
 - [ ] Adaptive controller using a configurable solver

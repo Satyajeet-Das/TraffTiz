@@ -68,6 +68,7 @@ def build_config(data: Mapping[str, Any]) -> Config:
         all_red_s=_integer(s["all_red_s"], "signal.all_red_s", minimum=0),
         g_min_s=_integer(s["g_min_s"], "signal.g_min_s", minimum=1),
         g_max_s=_integer(s["g_max_s"], "signal.g_max_s", minimum=1),
+        green_lost_s=_integer(s["green_lost_s"], "signal.green_lost_s", minimum=0),
     )
     _check_feasible(signal)
 
@@ -79,11 +80,13 @@ def build_config(data: Mapping[str, Any]) -> Config:
     )
 
     e = data["estimation"]
-    if not isinstance(e["include_pending"], bool):
-        raise ConfigError(f"estimation.include_pending must be true or false; got {e['include_pending']!r}")
+    for key in ("include_pending", "pending_in_queue"):
+        if not isinstance(e[key], bool):
+            raise ConfigError(f"estimation.{key} must be true or false; got {e[key]!r}")
     estimation = EstimationParams(
         window_s=_number(e["window_s"], "estimation.window_s", positive=True),
         include_pending=e["include_pending"],
+        pending_in_queue=e["pending_in_queue"],
     )
 
     v = data["solver"]

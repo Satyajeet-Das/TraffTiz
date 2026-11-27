@@ -14,8 +14,9 @@ def default_data():
 
 def test_defaults_match_design():
     config = load_config(DEFAULT)
-    assert config.signal.lost_time_s == 10
-    assert config.signal.green_budget_s == 80
+    assert config.signal.lost_time_s == 12
+    assert config.signal.green_budget_s == 78
+    assert config.signal.displayed_green_s(39) == 40
     assert config.model.discharge_rate_vps == pytest.approx((1860 / 3600, 1860 / 3600))
     assert config.model.beta == 0.1
     assert config.solver.name == "projected_gradient"
@@ -49,8 +50,11 @@ def test_config_is_immutable():
         ("signal", "yellow_s", 0),
         ("signal", "all_red_s", -1),
         ("signal", "g_min_s", True),
-        ("signal", "g_min_s", 41),  # 2 * g_min exceeds the budget
-        ("signal", "g_max_s", 39),  # 2 * g_max is below the budget
+        ("signal", "g_min_s", 40),  # 2 * g_min exceeds the budget
+        ("signal", "g_max_s", 38),  # 2 * g_max is below the budget
+        ("signal", "green_lost_s", -1),
+        ("signal", "green_lost_s", 0.5),
+        ("estimation", "pending_in_queue", 0),
         ("signal", "g_min_s", 71),  # above g_max
         ("model", "saturation_flow_vph", [1800]),
         ("model", "saturation_flow_vph", [1800, 0]),
@@ -75,11 +79,11 @@ def test_invalid_values_rejected(section, key, value):
         build_config(data)
 
 
-@pytest.mark.parametrize(("g_min", "g_max"), [(40, 70), (10, 40)])
+@pytest.mark.parametrize(("g_min", "g_max"), [(39, 70), (10, 39)])
 def test_feasibility_limits_are_inclusive(g_min, g_max):
     data = default_data()
     data["signal"].update(g_min_s=g_min, g_max_s=g_max)
-    assert build_config(data).signal.green_budget_s == 80
+    assert build_config(data).signal.green_budget_s == 78
 
 
 def test_beta_may_be_zero():

@@ -16,7 +16,7 @@ from optitraffic.types import ObjectiveData
 
 DEFAULT = Path(__file__).resolve().parents[1] / "configs" / "default.yaml"
 ARRIVAL_RATE = (0.2, 0.1)  # veh/s
-SATURATION_FLOW_VPH = (1800.0, 1800.0)  # the documented examples, not the measured value
+SATURATION_FLOW_VPH = (1800.0, 1800.0)  # the documented examples, not the measured values
 CASES = [
     ("A", (40, 10), False, "optimum on a bound"),
     ("B", (20, 15), False, "interior optimum"),
@@ -27,10 +27,11 @@ CASES = [
 def main() -> None:
     config = load_config(DEFAULT)
     model = replace(config.model, saturation_flow_vph=SATURATION_FLOW_VPH)
-    equal = config.signal.green_budget_s / 2
+    signal = replace(config.signal, green_lost_s=0)  # the examples use G = 80
+    equal = signal.green_budget_s / 2
     for name, queue, nonsmooth, description in CASES:
-        data = ObjectiveData.from_params(queue, ARRIVAL_RATE, model, config.signal)
-        problem = ReducedProblem.from_signal(data, config.signal, nonsmooth)
+        data = ObjectiveData.from_params(queue, ARRIVAL_RATE, model, signal)
+        problem = ReducedProblem.from_signal(data, signal, nonsmooth)
         result = minimize_bisection(problem)
         left_over = predict_queue(data, result.green)
         label = "J_ns" if nonsmooth else "J"

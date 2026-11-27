@@ -125,6 +125,19 @@ def test_waiting_vehicles(include, expected):
     assert state.valid  # a full road is reported, not treated as bad data
 
 
+@pytest.mark.parametrize(("add", "expected"), [(True, 7), (False, 5)])
+def test_waiting_vehicles_in_queue(add, expected):
+    config = replace(CONFIG, estimation=replace(CONFIG.estimation, pending_in_queue=add))
+    api = FakeTraci()
+    collector = StateCollector(api, config)
+    api.halting["N_in"] = 5
+    api.waiting = {"a": "N_in", "b": "N_in"}
+    run(collector, api, 90)
+    state = collector.read()
+    assert state.queue[0] == expected
+    assert state.approaches[0].pending == 2
+
+
 @pytest.mark.parametrize("bad", [-1, float("nan"), float("inf"), None])
 def test_invalid_measurement_is_flagged_and_never_propagated(bad):
     api = FakeTraci()

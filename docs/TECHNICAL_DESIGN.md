@@ -23,10 +23,10 @@ D1 and D2 are written into PRD 1.1 and still need supervisor confirmation. D3–
 | D1 | `Q² = max(0, a)²` is **continuously differentiable** (C¹). Only the second derivative jumps. A subgradient method on J is just gradient descent. | **In PRD §6.4.** J stays the control objective. `J_ns = Σ wᵢQᵢ + β Σ λᵢ(C − gᵢ)²` is used for the subgradient study and reported separately. |
 | D2 | With two phases and `g₁ + g₂ = G`, the problem is **one-dimensional**. BFGS reduces to the secant method and conjugate gradient has no conjugate directions to build. | **In PRD §6.7.** Solvers are n-dimensional and compared on the reduced 1-D problem, a 2-D penalty form and test functions (§6.5). |
 | D3 | "Queue per approach or phase" is ambiguous. Each phase serves two approaches that discharge at the same time. | *Default:* critical approach. `qᵢ`, `λᵢ` come from the approach in the phase with the largest `qᵢ + λᵢC`; `sᵢ` is per approach (all its lanes). |
-| D4 | Effective green (optimizer) differs from displayed green (controller). | *Default:* assume startup lost time equals used yellow, so displayed green = effective green and `L = 2·(yellow + all_red)`. Keep a conversion function so this can change. **M3 measured effective green about 1 s shorter** ([results](M3_INTERSECTION.md)); decide before M7. |
+| D4 | Effective green (optimizer) differs from displayed green (controller). | **Decided after M3** (effective green measured about 1 s shorter, [results](M3_INTERSECTION.md)): displayed = effective + 1 s, `L = 2·(yellow + all_red + 1)`. Bounds apply to effective green. |
 | D5 | `J` adds veh² and veh·s terms, so β carries units and its value matters. | Tune β and wᵢ on tuning seeds only; report a sensitivity sweep. |
 | D6 | Saturation flow 1800 veh/h may not match SUMO's car-following behaviour. | **Measured in M3: 1862 veh/h; config uses 1860** ([results](M3_INTERSECTION.md)). |
-| D7 | A full road hides new arrivals, so road counts underestimate demand. | *Default:* also count vehicles waiting to enter (`include_pending`). Relies on perfect detection ([results](M4_STATE_COLLECTION.md)). |
+| D7 | A full road hides new arrivals, so road counts underestimate demand. | *Default:* also count vehicles waiting to enter as arrivals (`include_pending`) and add them to the queue (`pending_in_queue`). Relies on perfect detection ([results](M4_STATE_COLLECTION.md)). |
 
 ---
 
@@ -133,7 +133,7 @@ class SolverResult:
 
 Route files are **pre-generated in Python** from `(scenario, seed)` with explicit departure times (Poisson process per approach). Every controller then receives the identical vehicle list, independent of how its signal decisions affect SUMO's internal random stream. The same seed is also passed to SUMO.
 
-*Default* scenarios, arrival rate per approach in veh/s (N=S, E=W). `Y = Σλᵢ/μᵢ` with the measured `μ = 1860/3600`; capacity requires roughly `Y < G/C ≈ 0.89`.
+*Default* scenarios, arrival rate per approach in veh/s (N=S, E=W). `Y = Σλᵢ/μᵢ` with the measured `μ = 1860/3600`; capacity requires roughly `Y < G/C ≈ 0.87`.
 
 | Scenario | λ_NS | λ_EW | Y |
 |---|---|---|---|
@@ -168,9 +168,9 @@ Sliding window: `λᵢ = Nᵢ / Δt`, *default* Δt = 180 s (two cycles). Before
 
 ## 5. Mathematical model
 
-The model uses the measured saturation flow (1860 veh/h); the worked examples in §5.5 use 1800.
+The model uses the measured saturation flow (1860 veh/h) and G = 78; the worked examples in §5.5 use 1800 veh/h and G = 80.
 
-*Defaults:* C = 90 s, yellow = 3 s, all-red = 2 s, L = 10 s, G = 80 s, g_min = 10 s, g_max = 70 s, wᵢ = 1, β = 0.1.
+*Defaults:* C = 90 s, yellow = 3 s, all-red = 2 s, lost green = 1 s per phase, L = 12 s, G = 78 s, g_min = 10 s, g_max = 70 s, wᵢ = 1, β = 0.1.
 
 ### 5.1 Queue prediction (FR-04)
 
