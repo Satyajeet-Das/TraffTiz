@@ -12,7 +12,11 @@ from pathlib import Path
 from optitraffic.integration.client import TraciClient
 from optitraffic.simulation.network import build_network, signal_links
 from optitraffic.simulation.routes import generate_trips, write_route_file
-from optitraffic.simulation.signals import stage_states, write_fixed_program
+from optitraffic.simulation.signals import (
+    stage_states,
+    write_actuated_program,
+    write_fixed_program,
+)
 from optitraffic.simulation.sumo_env import find_binary
 from optitraffic.types import Config
 
@@ -60,13 +64,22 @@ class RunSummary:
         return self.collisions == 0 and self.teleports == 0
 
 
-def prepare_files(config: Config, seed: int, folder: str | Path, green: tuple[int, int]) -> RunFiles:
+def prepare_files(
+    config: Config, seed: int, folder: str | Path, green: tuple[int, int], actuated: bool = False
+) -> RunFiles:
+    """Network, routes and signal program. `green` is unused for an actuated program."""
     folder = Path(folder)
     folder.mkdir(parents=True, exist_ok=True)
     network = build_network(folder / "intersection.net.xml")
     states = stage_states(signal_links(network, config.network.tls_id), config.network)
-    program = folder / "fixed.add.xml"
-    write_fixed_program(program, config.network.tls_id, states, config.signal, green)
+    if actuated:
+        program = folder / "actuated.add.xml"
+        write_actuated_program(
+            program, config.network.tls_id, states, config.signal, config.actuated
+        )
+    else:
+        program = folder / "fixed.add.xml"
+        write_fixed_program(program, config.network.tls_id, states, config.signal, green)
     trips = generate_trips(config.scenario, config.network, config.simulation, seed)
     routes = folder / f"{config.scenario.name}_seed{seed}.rou.xml"
     write_route_file(routes, trips)

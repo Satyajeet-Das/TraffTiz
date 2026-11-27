@@ -215,3 +215,75 @@ def test_wrong_direction_mapping_stops_at_startup(break_mapping):
     break_mapping(api)
     with pytest.raises(MappingError):
         StateCollector(api, CONFIG)
+
+
+# ------------------------------------------------------- own-green queue sampling
+def own_green():
+    return replace(CONFIG, estimation=replace(CONFIG.estimation, queue_sampling="own_green"))
+
+
+def test_own_green_reports_the_ew_queue_held_at_its_green_start():
+    api = FakeTraci()
+    collector = StateCollector(api, own_green())
+    run(collector, api, 135)
+    api.halting.update(N_in=1, S_in=1, E_in=12, W_in=7)  # as the EW green starts
+    collector.sample_green_start(1)
+    run(collector, api, 180)
+    api.halting.update(N_in=8, S_in=5, E_in=1, W_in=0)  # at the cycle start
+    state = collector.read()
+    assert state.valid, state.issues
+    assert state.queue == (8, 12)
+
+
+def test_own_green_needs_a_fresh_sample():
+    api = FakeTraci()
+    collector = StateCollector(api, own_green())
+    run(collector, api, 90)
+    first = collector.read()
+    assert not first.valid and any("not yet sampled" in issue for issue in first.issues)
+    run(collector, api, 135)
+    collector.sample_green_start(1)
+    run(collector, api, 180)
+    assert collector.read().valid
+    run(collector, api, 270)  # no sample in this cycle: the old one is not reused
+    assert not collector.read().valid
+
+
+def test_own_green_adds_vehicles_waiting_at_the_sample_time():
+    api = FakeTraci()
+    collector = StateCollector(api, own_green())
+    run(collector, api, 135)
+    api.halting["E_in"] = 4
+    api.waiting = {"w1": "E_in", "w2": "E_in"}
+    run(collector, api, 136)
+    collector.sample_green_start(1)
+    api.waiting = {}
+    run(collector, api, 180)
+    assert collector.read().queue == (0, 6)
+
+
+@pytest.mark.parametrize("fault", ["broken sample", "gap"])
+def test_own_green_discards_bad_samples(fault):
+    api = FakeTraci()
+    collector = StateCollector(api, own_green())
+    run(collector, api, 135)
+    if fault == "broken sample":
+        api.broken = {"E_in_0"}
+    collector.sample_green_start(1)
+    api.broken = set()
+    if fault == "gap":
+        api.time = 150.0
+        collector.observe()
+    run(collector, api, 180)
+    assert not collector.read().valid
+
+
+def test_cycle_start_sampling_ignores_green_start_samples():
+    api = FakeTraci()
+    collector = StateCollector(api, CONFIG)
+    run(collector, api, 135)
+    api.halting["E_in"] = 12
+    collector.sample_green_start(1)
+    api.halting["E_in"] = 2
+    run(collector, api, 180)
+    assert collector.read().queue == (0, 2)

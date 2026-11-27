@@ -9,6 +9,13 @@ With `include_pending` (the default) a vehicle counts as arriving when it first
 appears either on the incoming edge or in SUMO's waiting-to-enter list. A real
 road sensor could not see the latter; it belongs to the study's assumption of
 perfect detection. The number waiting is reported either way.
+
+Queues are read at the decision instant, which is just before the NS green. The
+EW phase has then only just been served, so its queue is systematically smaller
+than the NS one. With `queue_sampling: own_green`, call `sample_green_start(1)`
+as the EW green begins; the next `read()` reports that EW queue, so both queues
+are measured at the same point of their own cycle. The EW value is then part of
+a cycle old.
 """
 
 from __future__ import annotations
@@ -43,6 +50,7 @@ class StateCollector:
         self._last_observed: float | None = None
         self._issues: list[str] = []  # problems found since the last read
         self._pending: dict[str, int] = {edge: 0 for edge in self.edges}
+        self._held: dict[str, float] = {}  # queues sampled as a green began
 
     # ------------------------------------------------------------------ setup
     def _check_mapping(self) -> dict[str, list[str]]:
@@ -82,6 +90,7 @@ class StateCollector:
             # Vehicles may have come and gone unseen, so the history is unusable.
             self._issues.append(f"observation gap before t={now:g}")
             self.estimator.reset(now)
+            self._held.clear()
         self._last_observed = now
         try:
             arrivals = self._new_arrivals()
@@ -111,6 +120,33 @@ class StateCollector:
             counts.append(len(new))
         return counts
 
+    # ------------------------------------------------------------ green start
+    def sample_green_start(self, phase: int) -> None:
+        """Hold the queues of `phase` as its green begins (`own_green` only).
+
+        The NS green starts at the decision instant, where `read()` measures it
+        directly, so only the EW queues are ever held.
+        """
+        if self.config.estimation.queue_sampling != "own_green" or phase == 0:
+            return
+        self.observe()
+        for edge in self._phases[phase]:
+            issues: list[str] = []
+            queue = self._queue(edge, issues)
+            if issues:
+                self._issues += issues
+                self._held.pop(edge, None)
+            else:
+                self._held[edge] = queue
+
+    def _queue(self, edge: str, issues: list[str]) -> float:
+        queue = self._measure(
+            self.api.lane.getLastStepHaltingNumber, self._lanes[edge], "queue", issues
+        )
+        if self.config.estimation.pending_in_queue:
+            queue += self._pending[edge]
+        return queue
+
     # ------------------------------------------------------ decision instant
     def read(self) -> TrafficState:
         """The current state. `valid` is False, with reasons, if it must not be used."""
@@ -125,11 +161,18 @@ class StateCollector:
         approaches = []
         for edge, rate in zip(self.edges, rates):
             lanes = self._lanes[edge]
-            queue = self._measure(self.api.lane.getLastStepHaltingNumber, lanes, "queue", issues)
+            if (
+                self.config.estimation.queue_sampling == "own_green"
+                and edge in self._phases[1]
+            ):
+                queue = self._held.get(edge)
+                if queue is None:
+                    issues.append(f"queue of {edge} not yet sampled before its green")
+                    queue = 0.0
+            else:
+                queue = self._queue(edge, issues)
             count = self._measure(self.api.lane.getLastStepVehicleNumber, lanes, "vehicle count", issues)
             waiting = self._measure(self.api.lane.getWaitingTime, lanes, "waiting time", issues)
-            if self.config.estimation.pending_in_queue:
-                queue += self._pending[edge]
             approaches.append(ApproachState(
                 edge=edge,
                 queue=queue,
@@ -138,6 +181,7 @@ class StateCollector:
                 waiting_time=waiting,
                 pending=self._pending[edge],
             ))
+        self._held.clear()  # a held queue is used by one decision only
         try:
             signal_state = self.api.trafficlight.getRedYellowGreenState(self.config.network.tls_id)
         except _traci_errors() as error:

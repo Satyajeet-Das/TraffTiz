@@ -16,7 +16,9 @@ from typing import Any
 import yaml
 
 from optitraffic.types import (
+    QUEUE_SAMPLING,
     SOLVER_NAMES,
+    ActuatedParams,
     Config,
     DemandSegment,
     EstimationParams,
@@ -36,6 +38,7 @@ _SECTIONS = {
     "simulation": SimulationParams,
     "network": NetworkParams,
     "scenario": ScenarioParams,
+    "actuated": ActuatedParams,
 }
 
 
@@ -83,10 +86,16 @@ def build_config(data: Mapping[str, Any]) -> Config:
     for key in ("include_pending", "pending_in_queue"):
         if not isinstance(e[key], bool):
             raise ConfigError(f"estimation.{key} must be true or false; got {e[key]!r}")
+    if e["queue_sampling"] not in QUEUE_SAMPLING:
+        raise ConfigError(
+            f"estimation.queue_sampling must be one of {', '.join(QUEUE_SAMPLING)}; "
+            f"got {e['queue_sampling']!r}"
+        )
     estimation = EstimationParams(
         window_s=_number(e["window_s"], "estimation.window_s", positive=True),
         include_pending=e["include_pending"],
         pending_in_queue=e["pending_in_queue"],
+        queue_sampling=e["queue_sampling"],
     )
 
     v = data["solver"]
@@ -117,9 +126,14 @@ def build_config(data: Mapping[str, Any]) -> Config:
         warmup_s=_number(t["warmup_s"], "simulation.warmup_s", positive=False),
         duration_s=_number(t["duration_s"], "simulation.duration_s", positive=True),
     )
+    u = data["actuated"]
+    actuated = ActuatedParams(
+        max_gap_s=_number(u["max_gap_s"], "actuated.max_gap_s", positive=True),
+        detector_gap_s=_number(u["detector_gap_s"], "actuated.detector_gap_s", positive=True),
+    )
     return Config(
         signal, model, estimation, solver, simulation,
-        _network(data["network"]), _scenario(data["scenario"]),
+        _network(data["network"]), _scenario(data["scenario"]), actuated,
     )
 
 

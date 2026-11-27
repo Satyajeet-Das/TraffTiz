@@ -18,6 +18,11 @@ estimation:
   window_s: 180
   include_pending: true              # count vehicles waiting to enter as arrivals
   pending_in_queue: true             # and add them to the queue
+  queue_sampling: cycle_start        # or own_green: read each queue just before its own green
+
+actuated:                            # SUMO actuated baseline; green limits come from `signal`
+  max_gap_s: 3.0                     # green ends after this long without a vehicle
+  detector_gap_s: 2.0                # detector distance before the stop line, in driving time
 
 solver:
   name: projected_gradient

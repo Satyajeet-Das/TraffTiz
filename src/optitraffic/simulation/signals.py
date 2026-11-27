@@ -5,7 +5,7 @@ from __future__ import annotations
 from collections.abc import Sequence
 from pathlib import Path
 
-from optitraffic.types import NetworkParams, SignalParams
+from optitraffic.types import ActuatedParams, NetworkParams, SignalParams
 
 # One cycle, in order.
 STAGES = ("ns_green", "ns_yellow", "all_red_1", "ew_green", "ew_yellow", "all_red_2")
@@ -76,5 +76,37 @@ def write_fixed_program(
         f'        <phase duration="{duration}" state="{states[stage]}" name="{stage}"/>'
         for stage, duration in cycle_stages(signal, green)
     ]
+    lines += ["    </tlLogic>", "</additional>"]
+    Path(path).write_text("\n".join(lines) + "\n", encoding="utf-8", newline="\n")
+
+
+def write_actuated_program(
+    path: str | Path,
+    tls_id: str,
+    states: dict[str, str],
+    signal: SignalParams,
+    actuated: ActuatedParams,
+) -> None:
+    """Write a gap-based actuated program with the same green limits and clearances.
+
+    SUMO places its own detectors and varies each green between the displayed
+    equivalents of g_min and g_max, so the cycle length is not fixed.
+    """
+    shortest = signal.displayed_green_s(signal.g_min_s)
+    longest = signal.displayed_green_s(signal.g_max_s)
+    half = signal.green_budget_s // 2
+    lines = [
+        '<?xml version="1.0" encoding="UTF-8"?>',
+        "<additional>",
+        f'    <tlLogic id="{tls_id}" type="actuated" programID="actuated" offset="0">',
+        f'        <param key="max-gap" value="{actuated.max_gap_s}"/>',
+        f'        <param key="detector-gap" value="{actuated.detector_gap_s}"/>',
+    ]
+    for stage, duration in cycle_stages(signal, (half, signal.green_budget_s - half)):
+        limits = f' minDur="{shortest}" maxDur="{longest}"' if stage.endswith("green") else ""
+        shown = shortest if limits else duration
+        lines.append(
+            f'        <phase duration="{shown}"{limits} state="{states[stage]}" name="{stage}"/>'
+        )
     lines += ["    </tlLogic>", "</additional>"]
     Path(path).write_text("\n".join(lines) + "\n", encoding="utf-8", newline="\n")

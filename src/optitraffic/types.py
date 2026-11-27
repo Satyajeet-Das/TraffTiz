@@ -8,6 +8,10 @@ from dataclasses import dataclass
 
 import numpy as np
 
+# When each phase's queue is read: both at the cycle start, or each just before
+# its own green (the EW reading is then used at the next decision).
+QUEUE_SAMPLING = ("cycle_start", "own_green")
+
 SOLVER_NAMES = (
     "gradient_descent",
     "projected_gradient",
@@ -110,6 +114,15 @@ class EstimationParams:
     window_s: float
     include_pending: bool  # count waiting vehicles as arrivals
     pending_in_queue: bool  # add waiting vehicles to the queue
+    queue_sampling: str = "cycle_start"  # one of QUEUE_SAMPLING
+
+
+@dataclass(frozen=True)
+class ActuatedParams:
+    """SUMO's gap-based actuated signal (a baseline)."""
+
+    max_gap_s: float = 3.0  # green ends once no vehicle is detected for this long
+    detector_gap_s: float = 2.0  # detector distance before the stop line, in driving time
 
 
 @dataclass(frozen=True)
@@ -227,6 +240,15 @@ class CycleRecord:
 
 
 @dataclass(frozen=True)
+class ObservedGreen:
+    """One completed green shown by a signal that SUMO runs itself."""
+
+    phase: int  # 0 = NS, 1 = EW
+    start_s: float
+    displayed_s: float
+
+
+@dataclass(frozen=True)
 class Config:
     signal: SignalParams
     model: ModelParams
@@ -235,3 +257,4 @@ class Config:
     simulation: SimulationParams
     network: NetworkParams
     scenario: ScenarioParams
+    actuated: ActuatedParams = ActuatedParams()
