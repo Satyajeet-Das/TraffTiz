@@ -170,6 +170,11 @@ def test_solver_gets_only_part_of_the_decision_budget():
     assert seen[0].time_budget_s == pytest.approx(0.05)
 
 
+def test_sgd_stops_at_its_own_iteration_limit():
+    plan = AdaptiveController(load("sgd")).plan(make_state((18.0, 16.0)))
+    assert plan.solver.status == "max_iter" and plan.solver.iterations == 100
+
+
 def test_make_controller_passes_the_seed():
     assert make_controller("adaptive", load(), seed=9).seed == 9
 
