@@ -12,7 +12,7 @@ result = Newton().solve(problem, x0)     # returns a SolverResult
 | Solver | Update | Needs | Default parameters | Main limitation |
 |---|---|---|---|---|
 | Gradient descent | `P(x − α∇f)`, fixed α | Lipschitz gradient | α = 1/L | slow when ill-conditioned |
-| Projected gradient | `P(x − t∇f)`, Armijo on the projection arc | gradient | first t = 1, then twice the last | slow when ill-conditioned |
+| Projected gradient | `P(x − t∇f)`, Armijo on the projection arc | gradient | first t = 1, then twice the last; c = 0.25 | slow when ill-conditioned |
 | Momentum | heavy ball, velocity = step taken | gradient | α = 1/L, momentum 0.9, restart on a 10% rise | not monotone; no general guarantee here |
 | SGD | `P(x − αₖ ĝ)`, tail average | sampled gradient | α₀ = 1/L, decay 0.75, batch 16, seed 0 | noisy; always runs to the iteration limit |
 | Newton | damped, projected, free variables only | Hessian | gradient fallback if not positive definite | Hessian jumps at queue kinks |
@@ -25,6 +25,8 @@ Shared settings: `tolerance` 1e-6, `max_iterations` 500, optional `time_budget_s
 **Stopping.** `converged` means the projected residual `|x − P(x − ∇f)|` is within tolerance. Other statuses are `max_iter`, `time_budget`, `stalled` and `numerical_error`.
 
 **Line search near the optimum.** When the predicted decrease is too small to measure in floating point, the decrease is estimated from the gradients at both ends of the step. Without this, projected gradient oscillated near the optimum without reaching the tolerance.
+
+**Armijo constant of projected gradient (changed in M8).** The other line searches use c = 1e-4. For projected gradient that accepted steps of almost 2/L, so the iterates zig-zagged: one state recorded in simulation, where both queues clear and the objective is very flat, needed 569 iterations and ran out of time. With c = 0.25 it needs 7. On 3000 random one-variable states the worst case fell from 160 to 20 iterations, with the median unchanged at 8.
 
 ## Measured behaviour
 
@@ -47,7 +49,7 @@ With one variable and a step of 1/L, most methods solve case B in a single step.
 | Solver | ρ = 1 | ρ = 10 | ρ = 100 |
 |---|---|---|---|
 | Gradient descent | 70 | 619 | 6113 |
-| Projected gradient | 33 | 285 | 2789 |
+| Projected gradient | 33 | 270 | 2766 |
 | Momentum | 268 | 293 | 359 |
 | Newton | 1 | 1 | 1 |
 | BFGS | 2 | 2 | 2 |
@@ -61,7 +63,7 @@ With one variable and a step of 1/L, most methods solve case B in a single step.
 
 | Solver | Iterations | Error |
 |---|---|---|
-| Projected gradient | 15110 | 1.7e-6 |
+| Projected gradient | 11142 | 2.5e-6 |
 | Conjugate gradient | 38 | 8.2e-11 |
 | BFGS | 22 | 3.2e-10 |
 | Newton | 21 | 1.4e-10 |

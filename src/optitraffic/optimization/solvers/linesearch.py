@@ -9,7 +9,7 @@ import numpy as np
 SUFFICIENT_DECREASE = 1e-4
 
 
-def sufficient_decrease(problem, x, f, g, candidate, value) -> bool:
+def sufficient_decrease(problem, x, f, g, candidate, value, c=SUFFICIENT_DECREASE) -> bool:
     """Armijo test f(x+) <= f(x) + c * g.(x+ - x), safe near machine precision.
 
     When the predicted decrease is too small to be measured in f, subtracting two
@@ -23,9 +23,9 @@ def sufficient_decrease(problem, x, f, g, candidate, value) -> bool:
         return False
     noise = 16.0 * np.finfo(float).eps * abs(f)
     if -slope > 1000.0 * noise:
-        return value <= f + SUFFICIENT_DECREASE * slope
+        return value <= f + c * slope
     estimate = 0.5 * (slope + float(problem.gradient(candidate) @ step))
-    return value <= f + noise and estimate <= SUFFICIENT_DECREASE * slope
+    return value <= f + noise and estimate <= c * slope
 
 
 def armijo_search(
@@ -37,6 +37,7 @@ def armijo_search(
     initial_step: float = 1.0,
     shrink: float = 0.5,
     max_backtracks: int = 60,
+    c: float = SUFFICIENT_DECREASE,
 ) -> tuple[np.ndarray, float] | None:
     """Backtracking along the projection arc P(x + t*direction).
 
@@ -45,7 +46,7 @@ def armijo_search(
     step = initial_step
     for _ in range(max_backtracks):
         candidate = problem.project(x + step * direction)
-        if sufficient_decrease(problem, x, f, g, candidate, problem.value(candidate)):
+        if sufficient_decrease(problem, x, f, g, candidate, problem.value(candidate), c):
             return candidate, step
         step *= shrink
     return None

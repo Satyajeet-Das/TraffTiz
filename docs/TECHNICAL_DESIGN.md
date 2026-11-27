@@ -323,7 +323,7 @@ Note for the report: the calibrated baseline knows the true average demand, whic
 
 ### 7.2 Validation and fallback (FR-07)
 
-Checks: values finite and integer; within bounds; sum equals G; solver status is `converged`, or the iterate is feasible and not worse than the start (*configurable*); wall time within budget (NFR-03, *default* 100 ms); state valid.
+Checks: values finite and integer; within bounds; sum equals G; solver result feasible, and either `converged` or not worse than the start (*configurable*); wall time within budget (NFR-03, *default* 100 ms, of which the solver may use 80 %); state valid.
 
 Fallback order: fixed equal split (verified feasible at startup). Every fallback is logged with its reason and counted.
 

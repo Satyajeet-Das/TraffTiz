@@ -2,18 +2,22 @@
 
 import csv
 import itertools
+import time
 from dataclasses import replace
 from pathlib import Path
 
 import pytest
 
 from optitraffic.config import load_config
+from optitraffic.control.adaptive import AdaptiveController
 from optitraffic.control.controllers import CONTROLLERS, make_controller
 from optitraffic.control.validator import FALLBACK
+from optitraffic.integration.state_collector import StateCollector
+from optitraffic.optimization.solvers import create_solver
 from optitraffic.run import main, simulate
 from optitraffic.simulation.network import signal_links
 from optitraffic.simulation.signals import stage_states
-from optitraffic.types import TimingPlan
+from optitraffic.types import SOLVER_NAMES, TimingPlan
 
 pytestmark = pytest.mark.sumo
 
@@ -70,7 +74,7 @@ def test_controller_runs_safely(name, tmp_path):
     assert len(observed) == 900 and len(result.cycles) == 10
     assert_signals_match_plans(config, result, observed, states)
     fallbacks = [c for c in result.cycles if c.plan.source == FALLBACK]
-    if name == "queue_proportional":
+    if name in ("queue_proportional", "adaptive"):
         # Only the first decision, before any rate estimate exists.
         assert [c.start_s for c in fallbacks] == [0.0]
         assert len({c.plan.green for c in result.cycles}) > 1
@@ -116,10 +120,11 @@ def test_injected_faults_fall_back_and_signals_stay_safe(tmp_path):
     assert_signals_match_plans(config, result, observed, states)
 
 
-def test_same_seed_gives_same_run(tmp_path):
+@pytest.mark.parametrize("name", ["queue_proportional", "adaptive"])
+def test_same_seed_gives_same_run(name, tmp_path):
     config = load("high", duration=450.0)
     runs = [
-        simulate(config, make_controller("queue_proportional", config), 3, tmp_path / str(i))
+        simulate(config, make_controller(name, config), 3, tmp_path / str(i))
         for i in range(2)
     ]
     assert [c.state for c in runs[0].cycles] == [c.state for c in runs[1].cycles]
@@ -148,3 +153,111 @@ def test_command_line_run(tmp_path, capsys):
     assert len(rows) == 47  # 4200 s of 90 s cycles, the last one partial
     assert {r["source"] for r in rows} == {"fixed_calibrated"}
     assert "fallback cycles: 0" in capsys.readouterr().out
+
+
+# ------------------------------------------------------------ adaptive control
+SCENARIOS = ("low", "medium", "high", "ns_dominant", "ew_dominant", "changing")
+
+
+@pytest.mark.parametrize("name", SCENARIOS)
+def test_adaptive_full_run(name, tmp_path):
+    config = load_config(ROOT / "configs" / "default.yaml",
+                         ROOT / "configs" / "scenarios" / f"{name}.yaml")
+    result, observed, states = run_and_record(
+        config, make_controller("adaptive", config), tmp_path
+    )
+    assert result.valid, result
+    assert result.end_time_s == config.simulation.end_s and len(result.cycles) == 47
+    assert_signals_match_plans(config, result, observed, states)
+    # Only the first decision, before any rate estimate exists.
+    assert [c.start_s for c in result.cycles if c.plan.source == FALLBACK] == [0.0]
+    assert all(c.plan.reason or c.state.issues for c in result.cycles[:1])
+    assert all(c.plan.solver.converged for c in result.cycles[1:])
+
+
+@pytest.mark.parametrize("solver", SOLVER_NAMES)
+def test_adaptive_runs_safely_with_each_solver(solver, tmp_path):
+    config = load()
+    config = replace(config, solver=replace(config.solver, name=solver))
+    result, observed, states = run_and_record(
+        config, make_controller("adaptive", config, seed=1), tmp_path
+    )
+    assert result.valid, result
+    assert_signals_match_plans(config, result, observed, states)
+    # Wall-clock fallbacks are possible for the iterative methods on a slow machine.
+    assert all(c.plan.reason for c in result.cycles if c.plan.source == FALLBACK)
+    assert any(c.plan.source == "adaptive" for c in result.cycles)
+
+
+class FailingSolvers:
+    """Solver factory that fails differently on successive decisions."""
+
+    faults = {2: "error", 3: "slow", 4: "numerical", 6: "infeasible"}
+
+    def __init__(self):
+        self.calls = 0
+
+    def __call__(self, params, **options):
+        self.calls += 1
+        fault = self.faults.get(self.calls)
+        real = create_solver(params, **options)
+
+        class Solver:
+            def solve(self, problem, x0):
+                if fault == "error":
+                    raise ArithmeticError("injected solver error")
+                if fault == "slow":
+                    time.sleep(0.15)
+                result = real.solve(problem, x0)
+                if fault == "numerical":
+                    return replace(result, converged=False, status="numerical_error")
+                if fault == "infeasible":
+                    return replace(result, feasible=False)
+                return result
+
+        return Solver()
+
+
+def test_adaptive_failure_injection(tmp_path, monkeypatch):
+    config = load("medium")
+    read = StateCollector.read
+
+    def sometimes_invalid(self):
+        state = read(self)
+        if state.sim_time == 720:
+            return replace(state, valid=False, issues=("injected invalid state",))
+        return state
+
+    monkeypatch.setattr(StateCollector, "read", sometimes_invalid)
+    controller = AdaptiveController(config, solver_factory=FailingSolvers())
+    result, observed, states = run_and_record(config, controller, tmp_path)
+    assert result.valid
+    reasons = {c.start_s: c.plan.reason for c in result.cycles if c.plan.source == FALLBACK}
+    # Cycle 0 has no estimate, so solver calls 1, 2, ... happen from t = 90 s.
+    expected = {
+        0: "not ready", 180: "injected solver error", 270: "budget", 360: "numerical_error",
+        540: "infeasible", 720: "injected invalid state",
+    }
+    assert sorted(reasons) == sorted(expected)
+    for start, text in expected.items():
+        assert text in reasons[start]
+    assert_signals_match_plans(config, result, observed, states)
+
+
+def test_command_line_adaptive_run(tmp_path, capsys):
+    code = main(["--scenario", "low", "--controller", "adaptive", "--solver", "newton",
+                 "--out", str(tmp_path)])
+    assert code == 0
+    with open(tmp_path / "cycles.csv", newline="", encoding="utf-8") as handle:
+        rows = list(csv.DictReader(handle))
+    assert rows[0]["source"] == FALLBACK and rows[0]["status"] == ""
+    for row in rows[1:]:
+        assert (row["source"], row["solver"], row["status"]) == ("adaptive", "newton", "converged")
+        assert abs(float(row["solution_ns"]) - int(row["green_ns"])) < 1
+    assert "name: newton" in (tmp_path / "config.yaml").read_text(encoding="utf-8")
+    assert "solver newton: converged" in capsys.readouterr().out
+
+
+def test_command_line_rejects_solver_for_a_baseline(capsys):
+    with pytest.raises(SystemExit):
+        main(["--controller", "fixed_equal", "--solver", "newton"])

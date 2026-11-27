@@ -2,13 +2,13 @@
 
 Numerical optimization for adaptive traffic signal timing, studied in simulation.
 
-> **Status:** project setup (M2) and the queue model, objective functions (M5) all eight optimization algorithms (M6), the simulated intersection (M3), traffic data collection (M4) and signal control with three baseline controllers (M7) are complete. The mathematics has been [checked numerically](docs/M1_VERIFICATION.md) and [supervisor approval](docs/M1_SUPERVISOR_REVIEW.md) is pending. The optimization-based controller and experiments are not implemented yet.
+> **Status:** project setup (M2) and the queue model, objective functions (M5) all eight optimization algorithms (M6), the simulated intersection (M3), traffic data collection (M4), signal control with three baseline controllers (M7) and the optimization-based controller (M8) are complete. The mathematics has been [checked numerically](docs/M1_VERIFICATION.md) and [supervisor approval](docs/M1_SUPERVISOR_REVIEW.md) is pending. The comparison experiments are not implemented yet.
 
 Try after setup: `python examples/reference_cases.py` and `python examples/compare_solvers.py`
 
 Watch the intersection with a fixed-time signal: `python scripts/run_scenarios.py --scenario medium --seed 1 --gui`
 
-Run a baseline controller: `python -m optitraffic.run --scenario ns_dominant --controller queue_proportional --gui` (also `fixed_equal`, `fixed_calibrated`).
+Watch the optimization-based controller: `python -m optitraffic.run --scenario changing --controller adaptive --gui` (add `--solver newton` to choose the algorithm). The baselines are `fixed_equal`, `fixed_calibrated` and `queue_proportional`.
 
 ## Goal
 

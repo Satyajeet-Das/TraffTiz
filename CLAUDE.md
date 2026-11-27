@@ -12,7 +12,7 @@ If they disagree, say so and ask. Do not silently pick one. Open decisions are l
 
 ## Current status
 
-M1: maths verified (`python verification/m1_checks.py`, see [report](docs/M1_VERIFICATION.md)); supervisor approval pending ([review sheet](docs/M1_SUPERVISOR_REVIEW.md)). M2 complete: package skeleton, config loader, SUMO 1.28.0 check. M5 complete: queue model, objectives, reduced problem, oracle. M6 complete: all eight solvers ([notes](docs/SOLVERS.md)). M3 complete: intersection, seeded demand, saturation flow 1860 veh/h ([results](docs/M3_INTERSECTION.md)). M4 complete: state collection and demand estimation ([results](docs/M4_STATE_COLLECTION.md)). M7 complete: signal controller, validator with fallback, three baselines, `optitraffic.run`. Green times in plans are effective green (signal shows +1 s). Next: M8 (adaptive controller). Update this section and the work plan checkboxes as milestones land.
+M1: maths verified (`python verification/m1_checks.py`, see [report](docs/M1_VERIFICATION.md)); supervisor approval pending ([review sheet](docs/M1_SUPERVISOR_REVIEW.md)). M2 complete: package skeleton, config loader, SUMO 1.28.0 check. M5 complete: queue model, objectives, reduced problem, oracle. M6 complete: all eight solvers ([notes](docs/SOLVERS.md)). M3 complete: intersection, seeded demand, saturation flow 1860 veh/h ([results](docs/M3_INTERSECTION.md)). M4 complete: state collection and demand estimation ([results](docs/M4_STATE_COLLECTION.md)). M7 complete: signal controller, validator with fallback, three baselines, `optitraffic.run`. Green times in plans are effective green (signal shows +1 s). M8 complete: adaptive controller with any of the eight solvers ([results](docs/M8_ADAPTIVE.md)). Next: M9 (experiments); first settle SGD's time-budget dependence. Update this section and the work plan checkboxes as milestones land.
 
 ## Commands
 
@@ -27,13 +27,14 @@ python examples/compare_solvers.py
 python scripts/run_scenarios.py          # all scenarios, fixed equal split
 python scripts/measure_saturation.py     # slow: about 10 minutes
 python scripts/check_estimates.py        # slow: several minutes
+python scripts/check_adaptive.py         # slow: several minutes
 ```
 
 ```powershell
-python -m optitraffic.run --scenario medium --controller queue_proportional --seed 1 [--gui]
+python -m optitraffic.run --scenario medium --controller adaptive --seed 1 [--solver newton] [--gui]
 ```
 
-Planned, not yet implemented (`adaptive` controller in M8, experiments in M9):
+Planned, not yet implemented (experiments in M9):
 
 ```powershell
 python -m optitraffic.experiments --config configs/experiments.yaml

@@ -69,6 +69,9 @@ def test_config_is_immutable():
         ("solver", "tolerance", "small"),
         ("solver", "max_iterations", 0),
         ("solver", "time_budget_s", -1),
+        ("solver", "solver_budget_fraction", 0),
+        ("solver", "solver_budget_fraction", 1.5),
+        ("solver", "accept_unconverged", "yes"),
         ("simulation", "step_length_s", 0),
     ],
 )

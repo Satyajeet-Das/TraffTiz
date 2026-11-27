@@ -102,6 +102,25 @@ def test_result_fields(case, solver):
     np.testing.assert_allclose(result.gradient, problem.gradient(result.x))
 
 
+@pytest.mark.parametrize("start", [10.0, 39.0, 70.0])
+def test_projected_gradient_on_a_flat_objective(start):
+    """Recorded in simulation (low demand, seed 1): both queues clear, so only the
+    small red-time term remains. A weak Armijo constant accepted steps of almost
+    2/L here and needed hundreds of iterations."""
+    data = make_data((7, 0), arrival_rate=(13 / 180, 1 / 12),
+                     discharge_rate=(1860 / 3600, 1860 / 3600))
+    problem = ReducedProblem(data, 10, 70, 78)
+    result = ProjectedGradient().solve(problem, [start])
+    assert result.converged and result.iterations <= 20
+    assert abs(result.x[0] - minimize_bisection(problem).x) < 1e-4
+
+
+@pytest.mark.parametrize("value", [0.0, -0.1, 0.6, float("nan")])
+def test_projected_gradient_rejects_bad_decrease_constant(value):
+    with pytest.raises(ValueError):
+        ProjectedGradient(armijo_c=value)
+
+
 def test_worked_iteration_counts(case):
     problem = reduced(case("B"))
     assert Newton().solve(problem, [40.0]).iterations == 1
