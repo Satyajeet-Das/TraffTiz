@@ -133,6 +133,33 @@ class SolverResult:
 @dataclass(frozen=True)
 class SimulationParams:
     step_length_s: float
+    warmup_s: float
+    duration_s: float  # measured period after the warm-up
+
+    @property
+    def end_s(self) -> float:
+        return self.warmup_s + self.duration_s
+
+
+Movement = tuple[str, str]  # (incoming edge, outgoing edge)
+
+
+@dataclass(frozen=True)
+class NetworkParams:
+    tls_id: str
+    phase_movements: tuple[tuple[Movement, ...], tuple[Movement, ...]]  # (NS, EW)
+
+
+@dataclass(frozen=True)
+class DemandSegment:
+    start_fraction: float  # of the measured period
+    arrival_rate: tuple[float, float]  # veh/s per approach, (NS, EW)
+
+
+@dataclass(frozen=True)
+class ScenarioParams:
+    name: str
+    segments: tuple[DemandSegment, ...]
 
 
 @dataclass(frozen=True)
@@ -142,3 +169,5 @@ class Config:
     estimation: EstimationParams
     solver: SolverParams
     simulation: SimulationParams
+    network: NetworkParams
+    scenario: ScenarioParams

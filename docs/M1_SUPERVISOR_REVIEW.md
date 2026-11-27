@@ -16,7 +16,7 @@ $g_i$ green time of phase $i$ (North–South, East–West), $q_i$ queue, $\lambd
 
 **Planned algorithms:** gradient descent, projected gradient, momentum, stochastic gradient descent, Newton, BFGS, conjugate gradient, subgradient.
 
-**Current state:** formulation documented and checked numerically ([report](M1_VERIFICATION.md)). The project implementation has not started.
+**Current state:** formulation documented and checked numerically ([report](M1_VERIFICATION.md)). The model, the algorithms and the simulated intersection are built; adaptive control and experiments are not.
 
 ## 3. Decisions for your review
 
@@ -40,7 +40,8 @@ Each phase serves two approaches that move together. **Proposal:** use the appro
 ☐ Approve  ☐ Change  Comment:
 
 ### D4. Lost time
-**Proposal:** treat displayed green as effective green, with $L=2\times(\text{yellow}+\text{all-red})$.
+**Proposal:** treat displayed green as effective green, with $L=2\times(\text{yellow}+\text{all-red})$.  
+**Measured since:** in the simulator, effective green is about 1 s shorter than displayed green.
 
 ☐ Approve  ☐ Change  Comment:
 
@@ -50,9 +51,10 @@ $J$ adds terms with different units, so $\beta$ affects the answer. **Proposal:*
 ☐ Approve  ☐ Change  Comment:
 
 ### D6. Saturation flow
-**Proposal:** measure it in the simulator instead of assuming 1800 veh/h. The value will be known after the intersection is built.
+**Proposal:** measure it in the simulator instead of assuming 1800 veh/h.  
+**Measured since:** 1862 veh/h per lane ([results](M3_INTERSECTION.md)).
 
-☐ Approve in principle  ☐ Change  Comment:
+☐ Approve  ☐ Change  Comment:
 
 ## 4. Algorithm comparison plan
 

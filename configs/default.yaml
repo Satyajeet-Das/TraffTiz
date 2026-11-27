@@ -9,7 +9,7 @@ signal:
   g_max_s: 70
 
 model:
-  saturation_flow_vph: [1800, 1800]  # per approach; to be measured in M3
+  saturation_flow_vph: [1860, 1860]  # per lane, measured by scripts/measure_saturation.py
   queue_weight: [1.0, 1.0]
   beta: 0.1                          # veh/s
 
@@ -24,3 +24,17 @@ solver:
 
 simulation:
   step_length_s: 1.0
+  warmup_s: 600
+  duration_s: 3600                   # measured period after the warm-up
+
+network:
+  tls_id: C
+  phase_movements:                   # (from edge, to edge), NS phase then EW phase
+    - [[N_in, S_out], [S_in, N_out]]
+    - [[E_in, W_out], [W_in, E_out]]
+
+# Replaced by a file from configs/scenarios/.
+scenario:
+  name: medium
+  segments:
+    - {start_fraction: 0.0, arrival_rate: [0.12, 0.12]}

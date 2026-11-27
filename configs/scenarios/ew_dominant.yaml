@@ -1,0 +1,6 @@
+# Arrival rate per approach in veh/s, (NS, EW). start_fraction is a
+# fraction of the measured period; the warm-up uses the first segment.
+scenario:
+  name: ew_dominant
+  segments:
+    - {start_fraction: 0.0, arrival_rate: [0.10, 0.28]}

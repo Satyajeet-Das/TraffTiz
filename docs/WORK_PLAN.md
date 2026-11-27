@@ -56,15 +56,15 @@ Each milestone is done when its exit criteria pass and tests are green.
 **Exit:** `pytest` runs; a script starts SUMO headless and closes it through TraCI. ✅ Met.
 
 ### M3 — Intersection (FR-01)
-- [ ] Network sources and `netconvert` build
-- [ ] Signal program with yellow and all-red
-- [ ] Seeded route generator for all six scenarios
-- [ ] Measure saturation flow (D6) and re-check scenario demand levels
+- [x] Network sources and `netconvert` build
+- [x] Signal program with yellow and all-red
+- [x] Seeded route generator for all six scenarios
+- [x] Measure saturation flow (D6) and re-check scenario demand levels — [results](M3_INTERSECTION.md)
 
-**Exit:** vehicles enter and leave; no collisions or teleports in all scenarios; same seed gives an identical route file.
+**Exit:** vehicles enter and leave; no collisions or teleports in all scenarios; same seed gives an identical route file. ✅ Met.
 
 ### M4 — State collection (FR-02, FR-03)
-- [ ] TraCI client and direction mapping check
+- [ ] TraCI client and direction mapping check (minimal client and link check exist from M3)
 - [ ] State collector with validity handling
 - [ ] Sliding-window demand estimator with warm-up behaviour
 
