@@ -1,0 +1,55 @@
+# Experiment plan (docs/TECHNICAL_DESIGN.md, section 8).
+# Everything here was fixed before any evaluation seed was simulated.
+
+experiment_id: m9
+base_configs: [configs/default.yaml]
+frozen_config: configs/frozen.yaml    # written by the tuning stage
+workers: 6
+
+scenarios: [low, medium, high, ns_dominant, ew_dominant, changing]
+
+tuning:
+  seeds: [1, 2, 3, 4, 5]
+  # Grid for the adaptive controller; the baselines have no free parameters.
+  # One setting is chosen for all scenarios: the smallest geometric mean over
+  # scenarios of the primary metric relative to the default setting.
+  # Extended from 0.8 to 6.4 on the tuning seeds: the first best value was at the edge.
+  beta: [0.0, 0.025, 0.05, 0.1, 0.2, 0.4, 0.8, 1.6, 3.2, 6.4]
+  window_s: [90, 180, 360]
+
+evaluation:
+  seeds: [101, 102, 103, 104, 105, 106, 107, 108, 109, 110,
+          111, 112, 113, 114, 115, 116, 117, 118, 119, 120]
+  proposed: adaptive
+  baselines: [fixed_equal, fixed_calibrated, queue_proportional]
+  primary_metric: avg_total_wait_s    # waiting on the road plus waiting to enter it
+  metrics:                            # compared with paired statistics
+    - avg_total_wait_s
+    - avg_waiting_s
+    - avg_insertion_delay_s
+    - avg_travel_time_s
+    - avg_delay_s
+    - worst_approach_delay_s
+    - avg_queue_veh
+    - max_queue_veh
+    - throughput_veh
+    - stops_per_vehicle
+  confidence: 0.95
+
+verify:
+  runs: 6                             # evaluation runs repeated to check reproducibility
+  seed: 1
+
+solver_study:
+  seed: 7
+  max_iterations: 500
+  sgd_states: 100                     # states sampled for SGD (slow)
+  curve_states: 100                   # states averaged in the convergence curves
+  penalty_rho: [1, 10, 100]
+  penalty_states: 200
+  penalty_max_iterations: 20000
+  penalty_grid_checks: 3              # per rho, reference compared with a grid
+  quadratic_dimensions: [2, 5, 10]
+  quadratic_conditions: [10, 100]
+  quadratic_problems: 20
+  rosenbrock_max_iterations: 50000

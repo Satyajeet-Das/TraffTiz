@@ -1,1 +1,1 @@
-"""Metrics, experiments, statistics and plots."""
+"""Metrics, experiment batches, statistics and figures (PRD FR-10)."""

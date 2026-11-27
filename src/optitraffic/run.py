@@ -2,7 +2,7 @@
 
     python -m optitraffic.run --scenario medium --controller adaptive --seed 1
 
-Travel-time and waiting-time metrics are added in milestone M9.
+Traffic metrics and batches of runs are in `optitraffic.experiments`.
 """
 
 from __future__ import annotations
@@ -12,7 +12,7 @@ import csv
 import logging
 import sys
 from collections import Counter
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -61,8 +61,12 @@ def simulate(
     folder: str | Path,
     gui: bool = False,
     on_step: Callable[[TraciClient, str], None] | None = None,
+    sumo_options: Sequence[str] = (),
 ) -> RunResult:
-    """Run until warm-up + duration. `on_step` receives the client and stage name."""
+    """Run until warm-up + duration. `on_step` receives the client and stage name.
+
+    `sumo_options` are added to the SUMO command, for example to write trip output.
+    """
     from traci.exceptions import FatalTraCIError
 
     validator = Validator(
@@ -74,7 +78,8 @@ def simulate(
     cycles: list[CycleRecord] = []
     end_time, failure = 0.0, ""
     try:
-        with TraciClient(sumo_command(config, files, seed, gui)) as sim:
+        command = sumo_command(config, files, seed, gui) + list(sumo_options)
+        with TraciClient(command) as sim:
             collector = StateCollector(sim.api, config, start_s=sim.time)
             while sim.time < config.simulation.end_s:
                 if signals.at_boundary:
