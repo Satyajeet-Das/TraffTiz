@@ -49,11 +49,11 @@ Each milestone is done when its exit criteria pass and tests are green.
 
 ### M2 — Environment
 - [x] `git init`, `.gitignore` (venv, results, generated SUMO files)
-- [ ] Virtual environment (Python 3.12), `pyproject.toml` with pinned versions
-- [ ] Install SUMO (not currently found on this machine); set `SUMO_HOME` if the install needs it
-- [ ] Package skeleton, config loader with validation, pytest with `sumo` marker
+- [x] Virtual environment (Python 3.12), `pyproject.toml` with pinned versions
+- [x] Install SUMO 1.28.0 (pip package in the venv; no `SUMO_HOME` setting needed)
+- [x] Package skeleton, config loader with validation, pytest with `sumo` marker
 
-**Exit:** `pytest` runs; a script starts SUMO headless and closes it through TraCI.
+**Exit:** `pytest` runs; a script starts SUMO headless and closes it through TraCI. ✅ Met.
 
 ### M3 — Intersection (FR-01)
 - [ ] Network sources and `netconvert` build

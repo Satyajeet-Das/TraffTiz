@@ -12,15 +12,21 @@ If they disagree, say so and ask. Do not silently pick one. Open decisions are l
 
 ## Current status
 
-M1: maths verified (`python verification/m1_checks.py`, see [report](docs/M1_VERIFICATION.md)); supervisor approval pending ([review sheet](docs/M1_SUPERVISOR_REVIEW.md)). No project code under `src/` yet. Update this section and the work plan checkboxes as milestones land.
+M1: maths verified (`python verification/m1_checks.py`, see [report](docs/M1_VERIFICATION.md)); supervisor approval pending ([review sheet](docs/M1_SUPERVISOR_REVIEW.md)). M2 complete: package skeleton, config loader, SUMO 1.28.0 check. Next: M5 (maths, needs no SUMO) and M3 (intersection). Update this section and the work plan checkboxes as milestones land.
 
-## Commands (valid from M2 onwards)
+## Commands
 
 ```powershell
 py -3.12 -m venv .venv; .\.venv\Scripts\Activate.ps1
-pip install -e ".[dev]"
+pip install -e ".[dev,sim]"
 pytest                      # unit tests, no SUMO needed
 pytest -m sumo              # integration tests, SUMO needed
+python scripts/check_sumo.py
+```
+
+Planned, not yet implemented (M7, M9):
+
+```powershell
 python -m optitraffic.run --config configs/default.yaml --scenario medium --controller adaptive --seed 1
 python -m optitraffic.experiments --config configs/experiments.yaml
 ```

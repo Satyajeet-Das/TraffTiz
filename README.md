@@ -2,7 +2,7 @@
 
 Numerical optimization for adaptive traffic signal timing, studied in simulation.
 
-> **Status:** milestone M1. The mathematics has been [checked numerically](docs/M1_VERIFICATION.md) and [supervisor approval](docs/M1_SUPERVISOR_REVIEW.md) is pending. The project implementation has not started.
+> **Status:** project setup (M2) is complete. The mathematics has been [checked numerically](docs/M1_VERIFICATION.md) and [supervisor approval](docs/M1_SUPERVISOR_REVIEW.md) is pending. The queue model, algorithms and simulation are not implemented yet.
 
 ## Goal
 
@@ -61,15 +61,26 @@ Python 3.12, SUMO with TraCI, NumPy, Pandas, Matplotlib, PyYAML and pytest. SciP
 
 Progress is tracked in the [work plan](docs/WORK_PLAN.md).
 
-## Check the mathematics
+## Setup
 
-Requires Python and NumPy:
+Requires Python 3.12. The commands are for Windows PowerShell; SUMO is installed into the virtual environment.
 
 ```powershell
-python verification/m1_checks.py
+py -3.12 -m venv .venv
+.\.venv\Scripts\Activate.ps1
+pip install -e ".[dev,sim]"
 ```
 
-Setup and run instructions for the system will be added once it exists.
+## Check the installation
+
+```powershell
+pytest                            # unit tests
+pytest -m sumo                    # tests that start SUMO
+python scripts/check_sumo.py      # start and stop SUMO through TraCI
+python verification/m1_checks.py  # check the mathematics
+```
+
+Instructions for running experiments will be added once they exist.
 
 ## Scope and limitations
 
