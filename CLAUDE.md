@@ -12,7 +12,7 @@ If they disagree, say so and ask. Do not silently pick one. Open decisions are l
 
 ## Current status
 
-M1: maths verified (`python verification/m1_checks.py`, see [report](docs/M1_VERIFICATION.md)); supervisor approval pending ([review sheet](docs/M1_SUPERVISOR_REVIEW.md)). M2 complete: package skeleton, config loader, SUMO 1.28.0 check. M5 complete: queue model, objectives, reduced problem, oracle. Next: M6 (solvers, needs no SUMO) and M3 (intersection). Update this section and the work plan checkboxes as milestones land.
+M1: maths verified (`python verification/m1_checks.py`, see [report](docs/M1_VERIFICATION.md)); supervisor approval pending ([review sheet](docs/M1_SUPERVISOR_REVIEW.md)). M2 complete: package skeleton, config loader, SUMO 1.28.0 check. M5 complete: queue model, objectives, reduced problem, oracle. M6 complete: all eight solvers ([notes](docs/SOLVERS.md)). Next: M3 (intersection). Update this section and the work plan checkboxes as milestones land.
 
 ## Commands
 
@@ -23,6 +23,7 @@ pytest                      # unit tests, no SUMO needed
 pytest -m sumo              # integration tests, SUMO needed
 python scripts/check_sumo.py
 python examples/reference_cases.py
+python examples/compare_solvers.py
 ```
 
 Planned, not yet implemented (M7, M9):

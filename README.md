@@ -2,9 +2,9 @@
 
 Numerical optimization for adaptive traffic signal timing, studied in simulation.
 
-> **Status:** project setup (M2) and the queue model, objective functions and reference solver (M5) are complete. The mathematics has been [checked numerically](docs/M1_VERIFICATION.md) and [supervisor approval](docs/M1_SUPERVISOR_REVIEW.md) is pending. The optimization algorithms and traffic simulation are not implemented yet.
+> **Status:** project setup (M2) and the queue model, objective functions (M5) and all eight optimization algorithms (M6) are complete. The mathematics has been [checked numerically](docs/M1_VERIFICATION.md) and [supervisor approval](docs/M1_SUPERVISOR_REVIEW.md) is pending. The traffic simulation and signal control are not implemented yet.
 
-Try the worked examples after setup: `python examples/reference_cases.py`
+Try after setup: `python examples/reference_cases.py` and `python examples/compare_solvers.py`
 
 ## Goal
 
@@ -29,9 +29,9 @@ $$\text{subject to}\quad g_1+g_2=C-L, \qquad g_{min}\le g_i\le g_{max}$$
 
 where $Q_i=\max\left(0,\; q_i+\lambda_iC-\dfrac{s_ig_i}{3600}\right)$ is the predicted queue, $g_i$ the green time, $q_i$ the current queue, $\lambda_i$ the arrival rate, $s_i$ the saturation flow, $C$ the cycle length and $L$ the lost time.
 
-## Algorithms to be implemented
+## Algorithms
 
-Gradient descent, projected gradient descent, momentum, stochastic gradient descent, Newton's method, BFGS, conjugate gradient and the subgradient method (on a linear-queue variant of the objective).
+Gradient descent, projected gradient descent, momentum, stochastic gradient descent, Newton's method, BFGS, conjugate gradient and the subgradient method (on a linear-queue variant of the objective). See the [solver notes](docs/SOLVERS.md).
 
 ## Planned technology
 
