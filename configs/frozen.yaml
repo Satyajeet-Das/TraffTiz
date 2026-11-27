@@ -1,0 +1,7 @@
+# Chosen by the tuning stage of experiment 'm9' on seeds [1, 2, 3, 4, 5].
+# Score 0.9244 relative to beta 0.1, window 180 s (lower is better).
+# Do not edit after evaluation runs exist.
+model:
+  beta: 1.6
+estimation:
+  window_s: 90.0
