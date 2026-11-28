@@ -383,7 +383,7 @@ results/<experiment_id>/
 
 ### 8.4 Second experiment (`configs/experiments_m9b.yaml`)
 
-Added after M9, with its own plan fixed before any new evaluation seed was simulated.
+Added after M9, with its own plan fixed before any new evaluation seed was simulated. [Results](M9B_RESULTS.md).
 
 - Seven variants: fixed equal, fixed calibrated, queue-proportional (both samplings), actuated, adaptive (both samplings).
 - Tuning seeds 1–5 for the actuated settings and for β and window of the own-green adaptive controller. The cycle-start adaptive controller keeps its M9 values. Queue-proportional uses a 90 s window in both variants, as in M9.

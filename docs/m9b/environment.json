@@ -1,0 +1,30 @@
+{
+ "created": "2026-11-27T12:06:50",
+ "python": "3.12.1",
+ "platform": "Windows-11-10.0.26300-SP0",
+ "cpu_count": 12,
+ "sumo": [
+  "Eclipse SUMO sumo 1.28.0"
+ ],
+ "packages": {
+  "numpy": "2.2.6",
+  "pandas": "2.2.3",
+  "scipy": "1.15.1",
+  "matplotlib": "3.10.0",
+  "PyYAML": "6.0.2",
+  "traci": "1.28.0",
+  "sumolib": "1.28.0"
+ },
+ "source_hash": "b9599e6f7f92349b",
+ "git_commit": "530c53a4db93acb3d4fe654840ba4dc2dddb0332",
+ "git_uncommitted_files": [
+  " M README.md",
+  " M docs/WORK_PLAN.md",
+  "?? configs/frozen_m9b_actuated.yaml",
+  "?? configs/frozen_m9b_adaptive_own_green.yaml",
+  "?? dashboard/",
+  "?? docs/DEMO.md",
+  "?? scripts/demo.py",
+  "?? tests/test_dashboard.py"
+ ]
+}

@@ -1,0 +1,7 @@
+run_id,status,fallbacks_original,fallbacks_repeat,unconverged_original,unconverged_repeat,wait_original,wait_repeat
+ns_dominant__adaptive__seed202,done,2,1,0,0,43.34412261380323,42.63854258443465
+ew_dominant__adaptive__seed211,done,2,1,0,0,17.874914224446034,17.987137240886348
+ew_dominant__adaptive__seed212,done,3,1,2,0,18.73829640392299,18.00600435888122
+ew_dominant__adaptive_own_green__seed212,done,3,1,2,0,19.819298946603706,19.43971304031965
+changing__adaptive__seed203,done,1,1,1,0,29.26879915730337,29.26879915730337
+changing__adaptive__seed217,done,2,1,1,0,25.92624531132783,25.742449362340583

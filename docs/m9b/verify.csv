@@ -1,0 +1,8 @@
+run_id,compared,reproduced,differing
+low__fixed_calibrated__seed205,50,True,
+low__fixed_calibrated__seed218,50,True,
+high__queue_proportional__seed217,50,True,
+ns_dominant__fixed_equal__seed202,50,True,
+ew_dominant__fixed_calibrated__seed211,50,True,
+ew_dominant__adaptive__seed219,50,True,
+changing__actuated__seed214,50,True,

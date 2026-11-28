@@ -16,7 +16,7 @@ $g_i$ green time of phase $i$ (North–South, East–West), $q_i$ queue, $\lambd
 
 **Algorithms:** gradient descent, projected gradient, momentum, stochastic gradient descent, Newton, BFGS, conjugate gradient, subgradient.
 
-**Current state:** formulation documented and checked numerically ([report](M1_VERIFICATION.md)). The model, algorithms, simulation, controllers and a first experiment are complete ([results](M9_RESULTS.md)); a second experiment tests D8.
+**Current state:** formulation documented and checked numerically ([report](M1_VERIFICATION.md)). The model, algorithms, simulation, controllers and a first experiment are complete ([results](M9_RESULTS.md)); a second experiment tested D8 ([results](M9B_RESULTS.md), [report](REPORT.md)).
 
 ## 3. Decisions for your review
 
@@ -64,7 +64,7 @@ $J$ adds terms with different units, so $\beta$ affects the answer. **Proposal:*
 
 ### D8. When the queues are measured
 **Issue:** both queues were read at the cycle start, just before the North–South green. East–West had only just been served, so its queue was systematically smaller: with equal demand the first experiment measured 12.6 against 5.6 vehicles.  
-**Proposal (being tested):** read each queue just before its own green. The East–West value is then used at the next decision, so it is part of a cycle old. The objective and the signal sequence are unchanged.  
+**Proposal (tested):** read each queue just before its own green. The East–West value is then used at the next decision, so it is part of a cycle old. The objective and the signal sequence are unchanged.  
 **Note:** proposed after seeing the first results, so it is evaluated on new random seeds and both versions are reported.
 
 ☐ Approve  ☐ Change  Comment:
