@@ -1,0 +1,7 @@
+# Chosen for variant 'adaptive_own_green' by the tuning stage of experiment 'm9b'
+# on seeds [1, 2, 3, 4, 5]. Score 0.9827 relative to beta 0.1, window_s 180 (lower is better).
+# Do not edit after evaluation runs exist.
+model:
+  beta: 0.0
+estimation:
+  window_s: 360.0
