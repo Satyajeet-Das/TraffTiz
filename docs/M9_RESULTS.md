@@ -242,7 +242,7 @@ Gradient descent and momentum need a Lipschitz constant that Rosenbrock does not
 - Very small differences (under 1 s in the low and medium scenarios) are statistically clear but practically negligible.
 - Vehicles unfinished at the end are counted only up to the end, which flatters controllers that leave long queues.
 - The changing-demand calibrated baseline uses the average over both halves, so it equals the equal split.
-- SUMO's actuated controller (optional) was not included.
+- SUMO's actuated controller (optional) was not included. Both it and the queue-measurement correction were tested afterwards in the [second experiment](M9B_RESULTS.md).
 
 ## Reproduce
 

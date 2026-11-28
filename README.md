@@ -2,13 +2,13 @@
 
 Numerical optimization for adaptive traffic signal timing, studied in simulation.
 
-> **Status:** project setup (M2) and the queue model, objective functions (M5), all eight optimization algorithms (M6), the simulated intersection (M3), traffic data collection (M4), signal control with three baseline controllers (M7), the optimization-based controller (M8) and the experiments (M9) are complete. The mathematics has been [checked numerically](docs/M1_VERIFICATION.md) and [supervisor approval](docs/M1_SUPERVISOR_REVIEW.md) is pending. The final report (M10) is not written yet.
+> **Status:** the system, both experiments and the [final report](docs/REPORT.md) are complete. The mathematics has been [checked numerically](docs/M1_VERIFICATION.md); [supervisor approval](docs/M1_SUPERVISOR_REVIEW.md) is pending.
 
 Try after setup: `python examples/reference_cases.py` and `python examples/compare_solvers.py`
 
 Watch the intersection with a fixed-time signal: `python scripts/run_scenarios.py --scenario medium --seed 1 --gui`
 
-Watch the optimization-based controller: `python -m optitraffic.run --scenario changing --controller adaptive --gui` (add `--solver newton` to choose the algorithm). The baselines are `fixed_equal`, `fixed_calibrated` and `queue_proportional`.
+Watch the optimization-based controller: `python -m optitraffic.run --scenario changing --controller adaptive --gui` (add `--solver newton` to choose the algorithm). The baselines are `fixed_equal`, `fixed_calibrated`, `queue_proportional` and `actuated`.
 
 ## Goal
 
@@ -37,7 +37,7 @@ where $Q_i=\max\left(0,\; q_i+\lambda_iC-\dfrac{s_ig_i}{3600}\right)$ is the pre
 
 Gradient descent, projected gradient descent, momentum, stochastic gradient descent, Newton's method, BFGS, conjugate gradient and the subgradient method (on a linear-queue variant of the objective). See the [solver notes](docs/SOLVERS.md).
 
-## Planned technology
+## Technology
 
 Python 3.12, SUMO with TraCI, NumPy, Pandas, Matplotlib, PyYAML and pytest. SciPy is used only for statistics and test cross-checks.
 
@@ -45,10 +45,14 @@ Python 3.12, SUMO with TraCI, NumPy, Pandas, Matplotlib, PyYAML and pytest. SciP
 
 | Document | Contents |
 |---|---|
+| [**Final report**](docs/REPORT.md) | Formulation, algorithms, experiments, results, limitations |
 | [Product requirements](docs/PRD.md) | What the project must do |
 | [Technical design](docs/TECHNICAL_DESIGN.md) | Architecture, solver variants, signal safety, experiments |
 | [Mathematics](docs/MATHEMATICS.md) | Derivations, convexity, KKT conditions and worked examples |
 | [Work plan](docs/WORK_PLAN.md) | Milestones, tasks and acceptance checklist |
+| [First results](docs/M9_RESULTS.md), [second results](docs/M9B_RESULTS.md) | All tables, including the algorithm comparison |
+| [Demonstration guide](docs/DEMO.md) | A five-minute walk-through |
+| [Presentation guide](docs/PRESENTATION.md) | What to explain, how, and likely questions |
 
 ## Roadmap
 
@@ -86,13 +90,45 @@ python scripts/check_sumo.py      # start and stop SUMO through TraCI
 python verification/m1_checks.py  # check the mathematics
 ```
 
-## Experiments
+## Main result
+
+On unseen traffic, after correcting when queues are measured, the optimization-based controller waited less than queue-proportional control in all 6 scenarios, was not clearly different from a fixed signal tuned to the true demand in 5, and was far better than it when demand changed. SUMO's actuated signal was better in all 6. The [first version](docs/M9_RESULTS.md) had lost to the tuned fixed signal in 4 scenarios. See the [report](docs/REPORT.md).
+
+## Reproduce the results
+
+After [setup](#setup), reproduce one headline result (40 runs, a few minutes): in high demand the measurement correction lowers mean waiting from 35.6 s to 24.6 s.
 
 ```powershell
-python -m optitraffic.experiments --stage all   # about 90 minutes
+python scripts/reproduce_headline.py
 ```
 
-On unseen traffic the optimization-based controller waited less than the queue-proportional controller in 5 of 6 scenarios, but less than the demand-calibrated fixed signal in only 2 of 6. See the [results](docs/M9_RESULTS.md).
+The full second experiment (about 3 hours with six parallel runs):
+
+```powershell
+python -m optitraffic.experiments --stage all
+```
+
+It writes to `results/m9b/`. Finished runs are skipped, and results made with different code or settings are refused rather than mixed. The tuning stage rewrites the `configs/frozen_m9b_*.yaml` files.
+
+The first experiment, including the algorithm comparison, was produced at commit `c2f0f1f`. Its plan also runs on the current code with `--config configs/experiments.yaml` (about 90 minutes).
+
+A controller decision has 0.1 s of wall-clock time. On a busy computer a decision can overrun, which changes that run; close other programs for exact reproduction.
+
+## Dashboard
+
+```powershell
+python dashboard/build.py --open   # writes results/dashboard.html
+```
+
+One self-contained page built from the result tables: comparisons per scenario, paired differences, the queues and green times of any run, and run accounting.
+
+## Demonstration
+
+```powershell
+python scripts/demo.py             # two controllers on the same traffic in sumo-gui
+```
+
+See the [demonstration guide](docs/DEMO.md).
 
 ## Scope and limitations
 

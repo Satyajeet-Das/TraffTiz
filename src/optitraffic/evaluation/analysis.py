@@ -12,20 +12,23 @@ from optitraffic.evaluation.statistics import holm, mean_interval, paired_compar
 LOWER_IS_BETTER = {"throughput_veh": False}  # every other compared metric: lower is better
 
 
-def tuning_table(runs: pd.DataFrame, metric: str, default: tuple[float, float]) -> pd.DataFrame:
-    """One row per (beta, window): per-scenario mean and a relative score.
+def tuning_table(
+    runs: pd.DataFrame, metric: str, keys: Sequence[str], default: tuple[float, ...]
+) -> pd.DataFrame:
+    """One row per setting of the tuned `keys`: per-scenario mean and a relative score.
 
     The score is the geometric mean over scenarios of mean / mean at the default
     setting, so scenarios with large delays do not dominate. A setting with any
     run that is not "done" has no score and cannot be chosen.
     """
-    keys = ["beta", "window_s"]
+    keys = list(keys)
     done = runs[runs["status"] == "done"]
     means = done.pivot_table(index=keys, columns="scenario", values=metric, aggfunc="mean")
     complete = runs.groupby(keys)["status"].agg(lambda s: bool((s == "done").all()))
-    if default not in means.index or not complete.loc[default]:
+    lookup = default if len(keys) > 1 else default[0]
+    if lookup not in means.index or not complete.loc[lookup]:
         raise ValueError(f"the default setting {default} has no complete set of runs")
-    reference = means.loc[default]
+    reference = means.loc[lookup]
     scores = {}
     for setting, row in means.iterrows():
         if complete.loc[setting] and row.notna().all():
@@ -37,16 +40,18 @@ def tuning_table(runs: pd.DataFrame, metric: str, default: tuple[float, float]) 
     return table.reset_index().sort_values("score", na_position="last", kind="stable")
 
 
-def choose_setting(table: pd.DataFrame, default: tuple[float, float]) -> tuple[float, float]:
+def choose_setting(
+    table: pd.DataFrame, keys: Sequence[str], default: tuple[float, ...]
+) -> tuple[float, ...]:
     """Smallest score; the default wins ties."""
     scored = table.dropna(subset=["score"])
     best = scored["score"].min()
     tied = scored[scored["score"] <= best + 1e-12]
     for _, row in tied.iterrows():
-        if (row["beta"], row["window_s"]) == default:
+        if tuple(row[k] for k in keys) == default:
             return default
     first = tied.iloc[0]
-    return (float(first["beta"]), float(first["window_s"]))
+    return tuple(float(first[k]) for k in keys)
 
 
 def means_table(runs: pd.DataFrame, metrics: Sequence[str], confidence: float) -> pd.DataFrame:

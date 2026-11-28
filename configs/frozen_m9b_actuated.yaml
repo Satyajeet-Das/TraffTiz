@@ -1,0 +1,6 @@
+# Chosen for variant 'actuated' by the tuning stage of experiment 'm9b'
+# on seeds [1, 2, 3, 4, 5]. Score 0.8653 relative to max_gap_s 3, detector_gap_s 2 (lower is better).
+# Do not edit after evaluation runs exist.
+actuated:
+  max_gap_s: 2.0
+  detector_gap_s: 2.0

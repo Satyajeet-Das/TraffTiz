@@ -66,7 +66,7 @@ def assert_signals_match_plans(config, result, observed, states):
     assert runs == [pattern[i % 6] for i in range(len(runs))]
 
 
-@pytest.mark.parametrize("name", sorted(CONTROLLERS))
+@pytest.mark.parametrize("name", sorted(set(CONTROLLERS) - {"actuated"}))
 def test_controller_runs_safely(name, tmp_path):
     config = load()
     result, observed, states = run_and_record(config, make_controller(name, config), tmp_path)
@@ -261,3 +261,64 @@ def test_command_line_adaptive_run(tmp_path, capsys):
 def test_command_line_rejects_solver_for_a_baseline(capsys):
     with pytest.raises(SystemExit):
         main(["--controller", "fixed_equal", "--solver", "newton"])
+
+
+# --------------------------------------------- own-green sampling and actuated
+@pytest.mark.parametrize("name", SCENARIOS)
+def test_own_green_samples_the_ew_queue_as_its_green_starts(name, tmp_path):
+    config = load(name)
+    config = replace(
+        config, estimation=replace(config.estimation, queue_sampling="own_green"))
+    halting = []  # EW queue after every step
+
+    def watch(sim, stage):
+        halting.append((stage, {
+            e: sim.api.edge.getLastStepHaltingNumber(e)
+            + sum(sim.api.vehicle.getRoute(v)[0] == e
+                  for v in sim.api.simulation.getPendingVehicles())
+            for e in ("E_in", "W_in")
+        }))
+
+    result = simulate(
+        config, make_controller("adaptive", config), 1, tmp_path, on_step=watch)
+    assert result.valid
+    assert [c.start_s for c in result.cycles if c.plan.source == FALLBACK] == [0.0]
+    # The queue used at each decision is the one seen just before the last EW green.
+    starts = [i for i in range(1, len(halting))
+              if halting[i][0] == "ew_green" != halting[i - 1][0]]
+    for cycle, start in zip(result.cycles[1:], starts):
+        seen = halting[start - 1][1]
+        used = {a.edge: a.queue for a in cycle.state.approaches}
+        assert {e: used[e] for e in seen} == seen
+
+
+@pytest.mark.parametrize("name", SCENARIOS)
+def test_actuated_runs_safely(name, tmp_path):
+    config = load_config(ROOT / "configs" / "default.yaml",
+                         ROOT / "configs" / "scenarios" / f"{name}.yaml")
+    result, observed, states = run_and_record(
+        config, make_controller("actuated", config), tmp_path
+    )
+    assert result.valid, (result.signal_errors[:3], result.collisions, result.teleports)
+    assert result.cycles == () and len(result.greens) > 40
+    # The sequence and clearances, checked directly from the recorded states.
+    runs = [(state, len(list(group))) for state, group in itertools.groupby(observed)]
+    order = ("ns_green", "ns_yellow", "all_red_1", "ew_green", "ew_yellow", "all_red_2")
+    for index, (state, length) in enumerate(runs[:-1]):
+        stage = order[index % 6]
+        assert state == states[stage]
+        if stage.endswith("green"):
+            assert 11 <= length <= 71
+        else:
+            assert length == (config.signal.yellow_s if "yellow" in stage
+                              else config.signal.all_red_s)
+    assert len({g.displayed_s for g in result.greens}) > 3  # it really adapts
+
+
+def test_command_line_actuated_run(tmp_path, capsys):
+    code = main(["--scenario", "low", "--controller", "actuated", "--out", str(tmp_path)])
+    assert code == 0
+    with open(tmp_path / "greens.csv", newline="", encoding="utf-8") as handle:
+        rows = list(csv.DictReader(handle))
+    assert rows[0]["phase"] == "NS" and rows[1]["phase"] == "EW"
+    assert "greens" in capsys.readouterr().out

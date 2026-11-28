@@ -19,7 +19,7 @@ from pathlib import Path
 
 from optitraffic.control.validator import FALLBACK, Validator
 from optitraffic.simulation.routes import Trip
-from optitraffic.types import CycleRecord, SignalParams
+from optitraffic.types import CycleRecord, ObservedGreen, SignalParams
 
 # Metrics that depend on wall-clock time and so differ between identical runs.
 TIMING_METRICS = ("solver_mean_ms", "solver_max_ms", "decision_max_ms")
@@ -129,6 +129,34 @@ def control_metrics(
         "solver_mean_ms": _mean([1000 * r.runtime_s for r in results]),
         "solver_max_ms": max((1000 * r.runtime_s for r in results), default=None),
         "decision_max_ms": max((1000 * c.decision_s for c in measured), default=None),
+    }
+
+
+def observed_metrics(
+    greens: Sequence[ObservedGreen], signal: SignalParams, warmup_s: float
+) -> dict[str, object]:
+    """The same keys as `control_metrics` for a signal that SUMO runs itself.
+
+    A cycle is counted at each NS green; there are no plans, fallbacks or solver.
+    A green outside the displayed limits counts as infeasible.
+    """
+    shortest = signal.displayed_green_s(signal.g_min_s)
+    longest = signal.displayed_green_s(signal.g_max_s)
+    ns = [g for g in greens if g.phase == 0 and g.start_s >= warmup_s]
+    return {
+        "cycles": len(ns),
+        "fallbacks": 0,
+        "fallbacks_whole_run": 0,
+        "rejected_plans": 0,
+        "infeasible_applied": sum(not shortest <= g.displayed_s <= longest for g in greens),
+        "mean_green_ns_s": _mean([g.displayed_s - signal.green_lost_s for g in ns]),
+        "solver_calls": 0,
+        "solver_converged": 0,
+        "solver_statuses": "",
+        "mean_iterations": None,
+        "solver_mean_ms": None,
+        "solver_max_ms": None,
+        "decision_max_ms": None,
     }
 
 

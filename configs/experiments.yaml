@@ -1,21 +1,33 @@
-# Experiment plan (docs/TECHNICAL_DESIGN.md, section 8).
+# First experiment (docs/TECHNICAL_DESIGN.md, section 8); results in docs/M9_RESULTS.md,
+# produced at commit c2f0f1f.
 # Everything here was fixed before any evaluation seed was simulated.
 
 experiment_id: m9
 base_configs: [configs/default.yaml]
-frozen_config: configs/frozen.yaml    # written by the tuning stage
 workers: 6
 
 scenarios: [low, medium, high, ns_dominant, ew_dominant, changing]
 
+# A variant is a controller plus its settings. The tuned values are written to
+# `settings`. The baselines have no free parameters, but every controller ran
+# with the frozen file, whose window also feeds their measurements.
+variants:
+  fixed_equal: {controller: fixed_equal, label: Fixed equal, settings: configs/frozen.yaml}
+  fixed_calibrated: {controller: fixed_calibrated, label: Fixed calibrated, settings: configs/frozen.yaml}
+  queue_proportional: {controller: queue_proportional, label: Queue-proportional, settings: configs/frozen.yaml}
+  adaptive:
+    controller: adaptive
+    label: Adaptive
+    settings: configs/frozen.yaml
+    # One setting is chosen for all scenarios: the smallest geometric mean over
+    # scenarios of the primary metric relative to the default setting.
+    # Extended from 0.8 to 6.4 on the tuning seeds: the first best value was at the edge.
+    tune:
+      model.beta: [0.0, 0.025, 0.05, 0.1, 0.2, 0.4, 0.8, 1.6, 3.2, 6.4]
+      estimation.window_s: [90, 180, 360]
+
 tuning:
   seeds: [1, 2, 3, 4, 5]
-  # Grid for the adaptive controller; the baselines have no free parameters.
-  # One setting is chosen for all scenarios: the smallest geometric mean over
-  # scenarios of the primary metric relative to the default setting.
-  # Extended from 0.8 to 6.4 on the tuning seeds: the first best value was at the edge.
-  beta: [0.0, 0.025, 0.05, 0.1, 0.2, 0.4, 0.8, 1.6, 3.2, 6.4]
-  window_s: [90, 180, 360]
 
 evaluation:
   seeds: [101, 102, 103, 104, 105, 106, 107, 108, 109, 110,
@@ -41,6 +53,7 @@ verify:
   seed: 1
 
 solver_study:
+  variant: adaptive
   seed: 7
   max_iterations: 500
   sgd_states: 100                     # states sampled for SGD (slow)

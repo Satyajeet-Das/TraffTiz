@@ -110,7 +110,9 @@ def test_queue_proportional():
 
 def test_every_controller_gives_feasible_plans():
     rng = np.random.default_rng(14)
-    for name in CONTROLLERS:
+    for name, cls in CONTROLLERS.items():
+        if getattr(cls, "external_program", False):
+            continue  # SUMO runs it; there is no plan
         config = load("changing")
         controller = make_controller(name, config)
         validator = Validator(config.signal, 0.1)

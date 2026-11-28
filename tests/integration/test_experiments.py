@@ -63,3 +63,18 @@ def test_failed_run_is_recorded_and_retried(configs, tmp_path):
         assert records[0]["status"] == "failed" and "no_such_controller" in records[0]["error"]
     assert sum("0 already done, 1 to run" in m for m in messages) == 2
     assert (tmp_path / broken[0].run_id / "error.txt").is_file()
+
+
+def test_variants_including_actuated(configs, tmp_path):
+    runs = [
+        RunSpec("ns_dominant", "actuated", 2, overrides=SHORT),
+        RunSpec("ns_dominant", "queue_proportional", 2, variant="qp_own",
+                overrides=(*SHORT, ("estimation", "queue_sampling", "own_green"))),
+    ]
+    records = run_batch(configs, runs, tmp_path, progress=lambda _: None)
+    assert [r["status"] for r in records] == ["done", "done"], records
+    assert [r["controller"] for r in records] == ["actuated", "qp_own"]
+    actuated = records[0]
+    assert actuated["cycles"] > 0 and actuated["infeasible_applied"] == 0
+    assert actuated["signal_errors"] == 0 and actuated["solver_calls"] == 0
+    assert (tmp_path / runs[0].run_id / "greens.csv").is_file()

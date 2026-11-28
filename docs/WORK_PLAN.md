@@ -118,40 +118,42 @@ Build in this order; each ships with tests before the next starts.
 - [x] Run the evaluation matrix on seeds 101–120
 - [x] Solver comparison T1–T3
 - [x] β and observation-window sensitivity sweeps (joint grid on tuning seeds)
-- [ ] Optional: actuated baseline (not done)
+- [x] Optional: actuated baseline — added in the second experiment ([results](M9B_RESULTS.md))
 - [x] Paired statistics and figures
 
 **Exit:** every run accounted for (done, failed or invalid); rerunning a sample reproduces its metrics. ✅ Met — [results](M9_RESULTS.md).
 
 ### M10 — Report and demonstration
-- [ ] Report: formulation, algorithms, experimental design, results, limitations
-- [ ] README with reproduction steps
-- [ ] Demo script using `sumo-gui`
-- [ ] Walk through the PRD §12 checklist below
-- [ ] Optional dashboard, only if everything above is complete
+- [x] Report: formulation, algorithms, experimental design, results, limitations — [report](REPORT.md)
+- [x] README with reproduction steps (`python scripts/reproduce_headline.py`)
+- [x] Demo script using `sumo-gui` — [guide](DEMO.md)
+- [x] Walk through the PRD §12 checklist below
+- [x] Optional dashboard (`python dashboard/build.py`), built at the owner's request before the report
 
-**Exit:** a fresh checkout reproduces a headline result by following the README.
+**Exit:** a fresh checkout reproduces a headline result by following the README. ⚠️ Partly checked: a clean copy of the project files, using the existing virtual environment, reproduced it exactly after repeating runs that hit the time limit. A fresh clone with a newly installed environment has not been tried.
+
+**Follow-up experiment (between M9 and M10):** own-green queue measurement (D8) and the actuated baseline, on new evaluation seeds — [results](M9B_RESULTS.md).
 
 ---
 
 ## 3. Acceptance checklist (PRD §12)
 
-| # | Criterion | Milestone | Evidence |
-|---|---|---|---|
-| 1 | Intersection runs in SUMO | M3 | integration test |
-| 2 | Two phases operate correctly | M7 | signal log test |
-| 3 | Data collected through TraCI | M4 | integration test |
-| 4 | Queue and arrival estimates | M4, M5 | unit tests |
-| 5 | Objective correct | M5 | hand cases |
-| 6 | Gradient passes checks | M5 | finite differences |
-| 7 | Algorithms tested or exclusions justified | M6 | solver tests and notes |
-| 8 | Feasible allocations | M6, M8 | property tests, violation count |
-| 9 | Timings applied safely | M8 | signal log, failure injection |
-| 10 | Baselines available | M7 | run outputs |
-| 11 | Multiple scenarios | M9 | `runs.csv` |
-| 12 | Metrics collected and compared | M9 | `summary.csv` |
-| 13 | Reproducible | M9 | rerun check |
-| 14 | Report with assumptions and limits | M10 | report |
+| # | Criterion | Milestone | Evidence | Status |
+|---|---|---|---|---|
+| 1 | Intersection runs in SUMO | M3 | [integration test](../tests/integration/test_intersection.py) | met |
+| 2 | Two phases operate correctly | M7 | [signal log tests](../tests/integration/test_control_run.py) | met |
+| 3 | Data collected through TraCI | M4 | [integration test](../tests/integration/test_state_collection.py) | met |
+| 4 | Queue and arrival estimates | M4, M5 | [M4 accuracy](M4_STATE_COLLECTION.md), unit tests | met |
+| 5 | Objective correct | M5 | [reference cases](../tests/test_objective.py) | met |
+| 6 | Gradient passes checks | M5 | [M1 checks](M1_VERIFICATION.md), finite differences | met |
+| 7 | Algorithms tested or exclusions justified | M6 | [solver notes](SOLVERS.md), [test-function exclusions](M9_RESULTS.md) | met |
+| 8 | Feasible allocations | M6, M8 | 0 infeasible plans in 480 and 840 runs | met |
+| 9 | Timings applied safely | M8 | signal log and failure-injection tests | met |
+| 10 | Baselines available | M7 | four baselines, including actuated | met |
+| 11 | Multiple scenarios | M9 | [`runs.csv`](m9b/runs.csv), six scenarios | met |
+| 12 | Metrics collected and compared | M9 | [`summary.csv`](m9b/summary.csv) | met |
+| 13 | Reproducible | M9 | [rerun check](m9b/verify.csv); time-limit caveat | met, with caveat |
+| 14 | Report with assumptions and limits | M10 | [report](REPORT.md) | met |
 
 ---
 
@@ -180,7 +182,7 @@ Minimum viable result: M1–M5, projected GD plus Newton, M7, M8 and a reduced e
 
 1. Team size, deadline and required report format?
 2. Does the supervisor accept the PRD 1.1 changes: D1 (nonsmooth objective) and D2 (extra comparison formulations)?
-3. Is the actuated baseline expected?
+3. Is the actuated comparison appropriate, given its variable cycle? (It has been added.)
 
 ## 7. First actions
 

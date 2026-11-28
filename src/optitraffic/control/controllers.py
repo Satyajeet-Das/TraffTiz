@@ -90,9 +90,24 @@ class QueueProportional:
         return TimingPlan(proportional_plan(*state.queue, self._signal), self.name)
 
 
+class Actuated:
+    """SUMO's gap-based actuated signal. SUMO runs the program itself, so no plan
+    is proposed; the observed signal states are checked instead."""
+
+    name = "actuated"
+    needs_state = False
+    external_program = True
+
+    def __init__(self, config: Config) -> None:
+        pass
+
+    def plan(self, state: TrafficState) -> TimingPlan:
+        raise NotImplementedError("SUMO runs the actuated program; it has no timing plan")
+
+
 CONTROLLERS = {
     cls.name: cls
-    for cls in (FixedEqual, FixedCalibrated, QueueProportional, AdaptiveController)
+    for cls in (FixedEqual, FixedCalibrated, QueueProportional, Actuated, AdaptiveController)
 }
 
 

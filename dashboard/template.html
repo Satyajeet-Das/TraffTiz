@@ -1,0 +1,441 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>OptiTraffic results</title>
+<style>
+:root {
+  color-scheme: light;
+  --page: #f6f6f5; --surface: #ffffff; --border: #e4e4e2;
+  --text: #191919; --muted: #666666; --grid: #e6e6e6;
+  --ns: #257de0; --ew: #f47230; --accent: #257de0; --base: #8c8c8c; --shade: #f0f0ee;
+}
+@media (prefers-color-scheme: dark) {
+  :root:where(:not([data-theme="light"])) {
+    color-scheme: dark;
+    --page: #111111; --surface: #191919; --border: #303030;
+    --text: #efefef; --muted: #9c9c9c; --grid: #2c2c2c;
+    --ns: #338ced; --ew: #e76624; --accent: #338ced; --base: #777777; --shade: #222222;
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --page: #111111; --surface: #191919; --border: #303030;
+  --text: #efefef; --muted: #9c9c9c; --grid: #2c2c2c;
+  --ns: #338ced; --ew: #e76624; --accent: #338ced; --base: #777777; --shade: #222222;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--page); color: var(--text);
+  font: 14px/1.45 system-ui, "Segoe UI", sans-serif; }
+main { max-width: 1060px; margin: 0 auto; padding: 24px 16px 48px; }
+h1 { font-size: 22px; margin: 0 0 4px; }
+h2 { font-size: 16px; margin: 0 0 4px; }
+p { margin: 0 0 12px; color: var(--muted); }
+section { background: var(--surface); border: 1px solid var(--border); border-radius: 8px;
+  padding: 16px; margin-top: 16px; }
+.filters { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 16px; }
+label { display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: var(--muted); }
+select { font: inherit; color: var(--text); background: var(--surface);
+  border: 1px solid var(--border); border-radius: 6px; padding: 6px 8px; max-width: 100%; }
+.tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 12px; margin-top: 16px; }
+.tile { background: var(--surface); border: 1px solid var(--border); border-radius: 8px;
+  padding: 12px 16px; }
+.tile span { display: block; font-size: 12px; color: var(--muted); }
+.tile strong { display: block; font-size: 28px; font-weight: 600; }
+.chart { position: relative; }
+svg { display: block; width: 100%; overflow: visible; }
+svg text { font-size: 12px; fill: var(--muted); }
+svg text.name { fill: var(--text); }
+.gridline { stroke: var(--grid); stroke-width: 1; }
+.scroll { overflow-x: auto; }
+table { border-collapse: collapse; width: 100%; font-variant-numeric: tabular-nums; }
+th, td { border-bottom: 1px solid var(--border); padding: 6px 10px; text-align: right;
+  white-space: nowrap; }
+th { font-size: 12px; color: var(--muted); font-weight: 600; }
+th:first-child, td:first-child { text-align: left; }
+td.best { font-weight: 700; }
+tr.selected { background: var(--shade); }
+.legend { display: flex; gap: 16px; font-size: 12px; color: var(--muted); margin-bottom: 4px; }
+.legend i { display: inline-block; width: 16px; height: 3px; border-radius: 2px;
+  margin-right: 6px; vertical-align: middle; }
+#tip { position: fixed; pointer-events: none; display: none; z-index: 2;
+  background: var(--surface); border: 1px solid var(--border); border-radius: 6px;
+  padding: 8px 10px; font-size: 12px; box-shadow: 0 4px 14px rgb(0 0 0 / 0.18); }
+#tip b { display: block; margin-bottom: 2px; }
+#tip div span { color: var(--muted); margin-left: 6px; }
+details { margin-top: 12px; }
+summary { cursor: pointer; font-size: 12px; color: var(--muted); }
+.note { font-size: 12px; margin: 8px 0 0; }
+</style>
+</head>
+<body>
+<main>
+  <h1>OptiTraffic results</h1>
+  <p>Green-time optimization at one four-way intersection. All figures are from the SUMO simulation.</p>
+  <div class="filters">
+    <label>Experiment<select id="experiment"></select></label>
+    <label>Traffic scenario<select id="scenario"></select></label>
+    <label>Measure<select id="metric"></select></label>
+  </div>
+
+  <div class="tiles" id="tiles"></div>
+
+  <section>
+    <h2 id="compare-title"></h2>
+    <p id="compare-note"></p>
+    <div class="chart" id="compare"></div>
+  </section>
+
+  <section>
+    <h2>All scenarios</h2>
+    <p id="all-note"></p>
+    <div class="scroll"><table id="all"></table></div>
+  </section>
+
+  <section>
+    <h2 id="paired-title"></h2>
+    <p>Difference on the same traffic (paired by seed), with a 95% interval and a Holm-corrected p-value.</p>
+    <div class="scroll"><table id="paired"></table></div>
+  </section>
+
+  <section>
+    <h2>Inside one run</h2>
+    <p>What the signal measured and did in each cycle of the selected scenario. The shaded part is the warm-up, which is not scored.</p>
+    <div class="filters" style="margin: 0 0 12px">
+      <label>Controller<select id="controller"></select></label>
+      <label>Traffic seed<select id="seed"></select></label>
+    </div>
+    <h2>Queue used for the decision (vehicles)</h2>
+    <div class="chart" id="queues"></div>
+    <h2 style="margin-top: 16px">Effective green given (seconds)</h2>
+    <div class="chart" id="greens"></div>
+    <details><summary>Show this run as a table</summary><div class="scroll"><table id="cycles"></table></div></details>
+  </section>
+
+  <section>
+    <h2>Run accounting</h2>
+    <p id="accounting-note"></p>
+    <div class="scroll"><table id="accounting"></table></div>
+  </section>
+</main>
+<div id="tip" role="status"></div>
+
+<script>
+"use strict";
+const DATA = /*DATA*/null;
+const SCENARIO_NAMES = { low: "Low", medium: "Medium", high: "High",
+  ns_dominant: "North–South dominant", ew_dominant: "East–West dominant", changing: "Changing" };
+const METRICS = {
+  avg_total_wait_s: ["Waiting per vehicle, incl. waiting to enter", "s"],
+  avg_waiting_s: ["Waiting on the road per vehicle", "s"],
+  avg_insertion_delay_s: ["Waiting to enter per vehicle", "s"],
+  avg_travel_time_s: ["Travel time (finished vehicles)", "s"],
+  avg_delay_s: ["Delay per vehicle", "s"],
+  worst_approach_delay_s: ["Delay on the worst approach", "s"],
+  avg_queue_veh: ["Average total queue", "veh"],
+  max_queue_veh: ["Largest queue on one approach", "veh"],
+  throughput_veh: ["Vehicles through the junction", "veh"],
+  stops_per_vehicle: ["Stops per vehicle", ""],
+};
+const HIGHER_IS_BETTER = new Set(["throughput_veh"]);
+const $ = (id) => document.getElementById(id);
+let experiment = DATA[DATA.length - 1];
+
+function el(tag, attributes = {}, text) {
+  const svg = ["svg", "line", "circle", "text", "path", "rect", "g"].includes(tag);
+  const node = svg ? document.createElementNS("http://www.w3.org/2000/svg", tag)
+                   : document.createElement(tag);
+  for (const [key, value] of Object.entries(attributes)) node.setAttribute(key, value);
+  if (text !== undefined) node.textContent = text;
+  return node;
+}
+const label = (name) => experiment.labels[name] || name;
+const scenarioName = (name) => SCENARIO_NAMES[name] || name;
+const metricName = (name) => (METRICS[name] || [name])[0];
+const unit = (name) => (METRICS[name] || ["", ""])[1];
+const fmt = (value) => value === null || value === undefined ? "–"
+  : Math.abs(value) >= 1000 ? Math.round(value).toLocaleString("en-US")
+  : value.toFixed(Math.abs(value) < 10 ? 2 : 1);
+const withUnit = (value, metric) => (fmt(value) + " " + unit(metric)).trim();
+
+function fill(select, values, text, chosen) {
+  select.replaceChildren(...values.map((v) => el("option", { value: v }, text(v))));
+  if (chosen !== undefined && values.map(String).includes(String(chosen))) select.value = chosen;
+}
+
+function showTip(event, title, rows) {
+  const tip = $("tip");
+  tip.replaceChildren(el("b", {}, title), ...rows.map(([value, name]) => {
+    const row = el("div");
+    row.append(document.createTextNode(value), el("span", {}, name));
+    return row;
+  }));
+  tip.style.display = "block";
+  const box = tip.getBoundingClientRect();
+  const target = event.currentTarget.getBoundingClientRect();
+  const x = event.clientX ?? target.right, y = event.clientY ?? target.top;
+  tip.style.left = Math.min(x + 14, window.innerWidth - box.width - 8) + "px";
+  tip.style.top = Math.min(y + 14, window.innerHeight - box.height - 8) + "px";
+}
+const hideTip = () => { $("tip").style.display = "none"; };
+
+function ticks(max, count = 5) {
+  const raw = (max || 1) / count, power = Math.pow(10, Math.floor(Math.log10(raw)));
+  const step = [1, 2, 5, 10].map((m) => m * power).find((s) => s >= raw);
+  const result = [];
+  for (let v = 0; v <= max + step * 0.999; v += step) result.push(+v.toFixed(10));
+  return result;
+}
+
+function table(node, head, rows) {
+  const header = el("tr");
+  header.append(...head.map((h) => el("th", {}, h)));
+  node.replaceChildren(header, ...rows.map((row) => {
+    const tr = el("tr", row.selected ? { class: "selected" } : {});
+    tr.append(...row.cells.map((c) => typeof c === "object" && c !== null
+      ? el("td", { class: c.class }, c.text) : el("td", {}, c)));
+    return tr;
+  }));
+}
+
+function meansFor(scenario, metric) {
+  const found = experiment.means.filter((m) => m.scenario === scenario && m.metric === metric);
+  return experiment.controllers.map((c) => found.find((m) => m.controller === c)).filter(Boolean);
+}
+function best(rows, metric) {
+  const sign = HIGHER_IS_BETTER.has(metric) ? -1 : 1;
+  return rows.reduce((a, b) => (sign * b.mean < sign * a.mean ? b : a));
+}
+
+function drawTiles(scenario, metric) {
+  const rows = meansFor(scenario, metric);
+  const mine = rows.find((r) => r.controller === experiment.proposed);
+  const others = rows.filter((r) => r.controller !== experiment.proposed);
+  const tiles = [];
+  const tile = (title, value, note) => {
+    const box = el("div", { class: "tile" });
+    box.append(el("span", {}, title), el("strong", {}, value), el("span", {}, note));
+    tiles.push(box);
+  };
+  if (mine) tile(label(experiment.proposed), withUnit(mine.mean, metric), "proposed controller");
+  if (others.length) {
+    const rival = best(others, metric);
+    tile("Best of the others", withUnit(rival.mean, metric), label(rival.controller));
+    if (mine) {
+      const pair = experiment.paired.find((p) => p.scenario === scenario && p.metric === metric
+        && p.baseline === rival.controller);
+      if (pair) tile("Proposed compared with it",
+        (pair.mean_difference > 0 ? "+" : "") + withUnit(pair.mean_difference, metric),
+        verdictText(pair.verdict));
+    }
+  }
+  $("tiles").replaceChildren(...tiles);
+}
+const verdictText = (v) => v === "better" ? "✓ proposed is better"
+  : v === "worse" ? "✗ proposed is worse" : "– no clear difference";
+
+function drawCompare(scenario, metric) {
+  const rows = meansFor(scenario, metric);
+  $("compare-title").textContent = metricName(metric) + " — " + scenarioName(scenario);
+  $("compare-note").textContent = "Mean over " + (rows[0] ? rows[0].n : 0)
+    + " traffic seeds with 95% interval; " + (HIGHER_IS_BETTER.has(metric) ? "higher" : "lower")
+    + " is better. The proposed controller is in blue.";
+  const host = $("compare");
+  const width = host.clientWidth, left = Math.min(190, width * 0.38), right = 56, step = 32;
+  const height = rows.length * step + 28;
+  const svg = el("svg", { viewBox: `0 0 ${width} ${height}`, height });
+  const marks = ticks(Math.max(...rows.map((r) => r.ci_high)), width < 520 ? 3 : 5);
+  const x = (v) => left + (v / marks[marks.length - 1]) * (width - left - right);
+  for (const v of marks) {
+    svg.append(el("line", { class: "gridline", x1: x(v), x2: x(v), y1: 0, y2: height - 22 }),
+      el("text", { x: x(v), y: height - 6, "text-anchor": "middle" }, String(v)));
+  }
+  rows.forEach((r, i) => {
+    const y = i * step + step / 2;
+    const colour = r.controller === experiment.proposed ? "var(--accent)" : "var(--base)";
+    svg.append(el("text", { class: "name", x: left - 12, y: y + 4, "text-anchor": "end" },
+      label(r.controller)));
+    svg.append(el("line", { x1: x(r.ci_low), x2: x(r.ci_high), y1: y, y2: y,
+      stroke: colour, "stroke-width": 2, "stroke-linecap": "round" }));
+    svg.append(el("circle", { cx: x(r.mean), cy: y, r: 5, fill: colour,
+      stroke: "var(--surface)", "stroke-width": 2 }));
+    svg.append(el("text", { x: x(r.ci_high) + 8, y: y + 4 }, fmt(r.mean)));
+    const hit = el("rect", { x: 0, y: y - step / 2, width, height: step, fill: "transparent",
+      tabindex: 0, "aria-label": `${label(r.controller)} ${withUnit(r.mean, metric)}` });
+    const show = (e) => showTip(e, label(r.controller), [
+      [withUnit(r.mean, metric), "mean"],
+      [fmt(r.ci_low) + " to " + fmt(r.ci_high), "95% interval"]]);
+    hit.addEventListener("pointermove", show);
+    hit.addEventListener("focus", show);
+    hit.addEventListener("pointerleave", hideTip);
+    hit.addEventListener("blur", hideTip);
+    svg.append(hit);
+  });
+  host.replaceChildren(svg);
+}
+
+function drawAll(scenario, metric) {
+  $("all-note").textContent = metricName(metric) + (unit(metric) ? " (" + unit(metric) + ")" : "")
+    + ". The best value in each row is bold.";
+  table($("all"), ["Scenario", ...experiment.controllers.map(label)],
+    experiment.scenarios.map((s) => {
+      const rows = meansFor(s, metric), winner = rows.length ? best(rows, metric) : null;
+      return { selected: s === scenario, cells: [scenarioName(s),
+        ...experiment.controllers.map((c) => {
+          const found = rows.find((r) => r.controller === c);
+          if (!found) return "–";
+          return { text: fmt(found.mean), class: found.mean === winner.mean ? "best" : "" };
+        })] };
+    }));
+}
+
+function drawPaired(scenario, metric) {
+  $("paired-title").textContent = label(experiment.proposed) + " against each baseline";
+  const rows = experiment.paired.filter((p) => p.metric === metric && p.scenario === scenario);
+  table($("paired"), ["Baseline", "Difference", "95% interval", "p (Holm)", "Result"],
+    rows.map((p) => ({ cells: [label(p.baseline),
+      (p.mean_difference > 0 ? "+" : "") + withUnit(p.mean_difference, metric),
+      fmt(p.ci_low) + " to " + fmt(p.ci_high),
+      p.p_holm === null ? "–" : p.p_holm < 0.001 ? "< 0.001" : p.p_holm.toFixed(3),
+      verdictText(p.verdict)] })));
+}
+
+function lineChart(host, rows, columns, warmup) {
+  const series = [["North–South", "var(--ns)", columns[0]], ["East–West", "var(--ew)", columns[1]]];
+  const values = rows.flatMap((r) => series.map((s) => r[s[2]])).filter((v) => v !== null);
+  if (!values.length) {
+    host.replaceChildren(el("p", {}, "Not recorded: the actuated signal logs only its greens."));
+    return;
+  }
+  const legend = el("div", { class: "legend" });
+  for (const [name, colour] of series) {
+    const item = el("span"), key = el("i");
+    key.style.background = colour;
+    item.append(key, document.createTextNode(name));
+    legend.append(item);
+  }
+  const width = host.clientWidth, height = 190, left = 36, right = 12, bottom = 34;
+  const svg = el("svg", { viewBox: `0 0 ${width} ${height}`, height, tabindex: 0,
+    "aria-label": "Line chart per signal cycle; use arrow keys to read values" });
+  const end = rows[rows.length - 1][0] || 1;
+  const marks = ticks(Math.max(...values), 4), top = marks[marks.length - 1];
+  const x = (t) => left + (t / end) * (width - left - right);
+  const y = (v) => height - bottom - (v / top) * (height - bottom - 8);
+  svg.append(el("rect", { x: left, y: 8, width: Math.max(0, x(warmup) - left),
+    height: height - bottom - 8, fill: "var(--shade)" }));
+  for (const v of marks) {
+    svg.append(el("line", { class: "gridline", x1: left, x2: width - right, y1: y(v), y2: y(v) }),
+      el("text", { x: left - 6, y: y(v) + 4, "text-anchor": "end" }, String(v)));
+  }
+  const spacing = end > 2400 ? (width < 520 ? 1200 : 600) : 300;
+  for (let t = 0; t <= end; t += spacing) {
+    svg.append(el("text", { x: x(t), y: height - 18, "text-anchor": "middle" }, String(t)));
+  }
+  svg.append(el("text", { x: (left + width - right) / 2, y: height - 2, "text-anchor": "middle" },
+    "Simulation time (s)"));
+  for (const [, colour, column] of series) {
+    let path = "", joined = false;
+    for (const r of rows) {
+      if (r[column] === null) { joined = false; continue; }
+      path += (joined ? "L" : "M") + x(r[0]).toFixed(1) + " " + y(r[column]).toFixed(1);
+      joined = true;
+    }
+    svg.append(el("path", { d: path, fill: "none", stroke: colour, "stroke-width": 2,
+      "stroke-linejoin": "round" }));
+  }
+  const cursor = el("line", { y1: 8, y2: height - bottom, stroke: "var(--muted)", visibility: "hidden" });
+  svg.append(cursor);
+  let index = 0;
+  const point = (i, event) => {
+    index = Math.max(0, Math.min(rows.length - 1, i));
+    const r = rows[index];
+    cursor.setAttribute("x1", x(r[0]));
+    cursor.setAttribute("x2", x(r[0]));
+    cursor.setAttribute("visibility", "visible");
+    showTip(event, `Cycle at ${r[0]} s` + (r[5] ? " (fallback plan)" : ""),
+      series.map(([name, , column]) => [fmtCell(r[column]), name]));
+  };
+  svg.addEventListener("pointermove", (e) => {
+    const box = svg.getBoundingClientRect();
+    const t = ((e.clientX - box.left) * (width / box.width) - left) / (width - left - right) * end;
+    let nearest = 0;
+    rows.forEach((r, i) => { if (Math.abs(r[0] - t) < Math.abs(rows[nearest][0] - t)) nearest = i; });
+    point(nearest, e);
+  });
+  svg.addEventListener("keydown", (e) => {
+    if (e.key !== "ArrowLeft" && e.key !== "ArrowRight") return;
+    e.preventDefault();
+    point(index + (e.key === "ArrowRight" ? 1 : -1), { currentTarget: svg });
+  });
+  const leave = () => { cursor.setAttribute("visibility", "hidden"); hideTip(); };
+  svg.addEventListener("pointerleave", leave);
+  svg.addEventListener("blur", leave);
+  host.replaceChildren(legend, svg);
+}
+const fmtCell = (v) => v === null ? "–" : String(v);
+
+function drawRun() {
+  const key = [$("scenario").value, $("controller").value, $("seed").value].join("|");
+  const run = experiment.runs[key];
+  if (!run || !run.rows.length) {
+    for (const id of ["queues", "greens"]) $(id).replaceChildren(el("p", {}, "No data for this run."));
+    $("cycles").replaceChildren();
+    return;
+  }
+  lineChart($("queues"), run.rows, [1, 2], experiment.warmup_s);
+  lineChart($("greens"), run.rows, [3, 4], experiment.warmup_s);
+  table($("cycles"), ["Start (s)", "Queue NS", "Queue EW", "Green NS", "Green EW", "Plan"],
+    run.rows.map((r) => ({ cells: [String(r[0]), fmtCell(r[1]), fmtCell(r[2]), fmtCell(r[3]),
+      fmtCell(r[4]), r[5] ? "fallback" : run.kind === "actuated" ? "SUMO actuated" : "controller"] })));
+}
+
+function drawAccounting(scenario) {
+  const rows = experiment.counts.filter((c) => c.scenario === scenario);
+  const total = (k) => experiment.counts.reduce((sum, c) => sum + c[k], 0);
+  let note = `${total("done")} of ${total("runs")} runs valid; ${total("invalid")} invalid, `
+    + `${total("failed")} failed; ${total("collisions")} collisions. `;
+  if (experiment.verify) note += `${experiment.verify.reproduced} of ${experiment.verify.checked} `
+    + "repeated runs reproduced their metrics. ";
+  $("accounting-note").textContent = note + "Table: " + scenarioName(scenario) + ".";
+  table($("accounting"), ["Controller", "Runs", "Valid", "Invalid", "Failed", "Collisions",
+    "Teleports", "Fallback cycles", "Infeasible greens"],
+    experiment.controllers.map((name) => rows.find((r) => r.controller === name)).filter(Boolean)
+      .map((r) => ({ cells: [label(r.controller), ...["runs", "done", "invalid", "failed",
+        "collisions", "teleports", "fallbacks", "infeasible_applied"].map((k) => String(r[k]))] })));
+}
+
+function draw() {
+  hideTip();
+  const scenario = $("scenario").value, metric = $("metric").value;
+  drawTiles(scenario, metric);
+  drawCompare(scenario, metric);
+  drawAll(scenario, metric);
+  drawPaired(scenario, metric);
+  drawRun();
+  drawAccounting(scenario);
+}
+
+function chooseExperiment() {
+  const previous = { scenario: $("scenario").value, metric: $("metric").value,
+    controller: $("controller").value };
+  experiment = DATA.find((d) => d.id === $("experiment").value);
+  fill($("scenario"), experiment.scenarios, scenarioName, previous.scenario || "ns_dominant");
+  fill($("metric"), experiment.metrics, metricName, previous.metric || experiment.primary);
+  fill($("controller"), experiment.controllers, label, previous.controller || experiment.proposed);
+  fill($("seed"), experiment.seeds, String);
+  draw();
+}
+
+fill($("experiment"), DATA.map((d) => d.id), (id) => id, experiment.id);
+$("experiment").addEventListener("change", chooseExperiment);
+for (const id of ["scenario", "metric"]) $(id).addEventListener("change", draw);
+for (const id of ["controller", "seed"]) $(id).addEventListener("change", drawRun);
+let resize;
+window.addEventListener("resize", () => { clearTimeout(resize); resize = setTimeout(draw, 150); });
+window.addEventListener("scroll", hideTip, { passive: true });
+chooseExperiment();
+</script>
+</body>
+</html>

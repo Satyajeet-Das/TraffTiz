@@ -20,9 +20,14 @@ from pathlib import Path
 
 from optitraffic.config import config_to_dict, load_config
 from optitraffic.control.controllers import make_controller
-from optitraffic.evaluation.metrics import control_metrics, read_tripinfo, traffic_metrics
+from optitraffic.evaluation.metrics import (
+    control_metrics,
+    observed_metrics,
+    read_tripinfo,
+    traffic_metrics,
+)
 from optitraffic.integration.queue_monitor import QueueMonitor
-from optitraffic.run import simulate, write_cycles
+from optitraffic.run import simulate, write_cycles, write_greens
 from optitraffic.simulation.routes import generate_trips
 from optitraffic.types import Config
 
@@ -41,10 +46,16 @@ class RunSpec:
     seed: int
     label: str = ""  # distinguishes parameter settings
     overrides: tuple[tuple[str, str, object], ...] = ()  # (section, key, value)
+    variant: str = ""  # name the results go under, if not the controller's
+    settings: tuple[Path, ...] = ()  # config overlays after the batch's files
+
+    @property
+    def name(self) -> str:
+        return self.variant or self.controller
 
     @property
     def run_id(self) -> str:
-        parts = (self.scenario, self.controller, f"seed{self.seed}", self.label)
+        parts = (self.scenario, self.name, f"seed{self.seed}", self.label)
         return "__".join(p for p in parts if p)
 
 
@@ -67,7 +78,7 @@ def run_config(config_paths: Sequence[Path], spec: RunSpec) -> Config:
     for section, key, value in spec.overrides:
         overrides.setdefault(section, {})[key] = value
     scenario = ROOT / "configs" / "scenarios" / f"{spec.scenario}.yaml"
-    return load_config(*config_paths, scenario, overrides=overrides or None)
+    return load_config(*config_paths, *spec.settings, scenario, overrides=overrides or None)
 
 
 def run_hash(config: Config, spec: RunSpec, source: str) -> str:
@@ -86,7 +97,7 @@ def execute_run(
     record: dict[str, object] = {
         "run_id": spec.run_id,
         "scenario": spec.scenario,
-        "controller": spec.controller,
+        "controller": spec.name,
         "seed": spec.seed,
         "label": spec.label,
         "beta": config.model.beta,
@@ -115,9 +126,11 @@ def _simulate(config: Config, spec: RunSpec, folder: Path) -> dict[str, object]:
     edges = [origin for phase in config.network.phase_movements for origin, _ in phase]
     monitor = QueueMonitor(edges, warmup, end)
     trips_file = folder / "tripinfo.xml.gz"
+    controller = make_controller(spec.controller, config, spec.seed)
+    external = getattr(controller, "external_program", False)
     result = simulate(
         config,
-        make_controller(spec.controller, config, spec.seed),
+        controller,
         spec.seed,
         folder,
         on_step=lambda sim, stage: monitor.observe(sim.api, sim.time),
@@ -127,18 +140,26 @@ def _simulate(config: Config, spec: RunSpec, folder: Path) -> dict[str, object]:
             "--tripinfo-output.write-undeparted", "true",
         ),
     )
-    write_cycles(folder / "cycles.csv", result.cycles)
+    if external:
+        write_greens(folder / "greens.csv", result.greens)
+    else:
+        write_cycles(folder / "cycles.csv", result.cycles)
     record: dict[str, object] = {
         "collisions": result.collisions,
         "teleports": result.teleports,
-        "error": result.failure,
+        "signal_errors": len(result.signal_errors),
+        "error": result.failure or "; ".join(result.signal_errors[:3]),
     }
     if result.failure:
         return {**record, "status": "failed"}
     schedule = generate_trips(config.scenario, config.network, config.simulation, spec.seed)
     record.update(traffic_metrics(read_tripinfo(trips_file), schedule, warmup, end))
     record.update(monitor.summary())
-    record.update(control_metrics(result.cycles, config.signal, warmup))
+    record.update(
+        observed_metrics(result.greens, config.signal, warmup)
+        if external
+        else control_metrics(result.cycles, config.signal, warmup)
+    )
     record["status"] = "done" if result.valid else "invalid"
     # Large files that the seed regenerates exactly.
     for name in ("intersection.net.xml", f"{spec.scenario}_seed{spec.seed}.rou.xml"):

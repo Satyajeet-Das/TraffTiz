@@ -1,0 +1,78 @@
+# Second experiment (docs/TECHNICAL_DESIGN.md, section 8.4): own-green queue
+# measurement and the actuated baseline.
+# Everything here was fixed before any evaluation seed was simulated. The change
+# was proposed after seeing the m9 results, so new evaluation seeds are used.
+
+experiment_id: m9b
+base_configs: [configs/default.yaml]
+workers: 6
+
+scenarios: [low, medium, high, ns_dominant, ew_dominant, changing]
+
+# A variant is a controller plus its settings. `tune` grids are searched on the
+# tuning seeds; one setting is chosen for all scenarios (smallest geometric mean
+# over scenarios of the primary metric relative to the default setting).
+variants:
+  fixed_equal:
+    controller: fixed_equal
+    label: Fixed equal
+  fixed_calibrated:
+    controller: fixed_calibrated
+    label: Fixed calibrated
+  queue_proportional:
+    controller: queue_proportional
+    label: Queue-prop., cycle start
+    overrides:                         # the 90 s window it had in m9
+      estimation: {window_s: 90}
+  queue_proportional_own_green:
+    controller: queue_proportional
+    label: Queue-prop., own green
+    overrides:
+      estimation: {queue_sampling: own_green, window_s: 90}
+  actuated:
+    controller: actuated
+    label: Actuated
+    settings: configs/frozen_m9b_actuated.yaml
+    tune:
+      actuated.max_gap_s: [1.0, 2.0, 3.0, 4.0, 5.0]
+      actuated.detector_gap_s: [1.0, 2.0, 3.0]
+  adaptive:                            # the m9 controller with its m9 settings
+    controller: adaptive
+    label: Adaptive, cycle start
+    settings: configs/frozen.yaml
+  adaptive_own_green:
+    controller: adaptive
+    label: Adaptive, own green
+    settings: configs/frozen_m9b_adaptive_own_green.yaml
+    overrides:
+      estimation: {queue_sampling: own_green}
+    tune:
+      model.beta: [0.0, 0.025, 0.05, 0.1, 0.2, 0.4, 0.8, 1.6, 3.2, 6.4]
+      estimation.window_s: [90, 180, 360]
+
+tuning:
+  seeds: [1, 2, 3, 4, 5]
+
+evaluation:
+  seeds: [201, 202, 203, 204, 205, 206, 207, 208, 209, 210,
+          211, 212, 213, 214, 215, 216, 217, 218, 219, 220]
+  proposed: adaptive_own_green
+  baselines: [fixed_equal, fixed_calibrated, queue_proportional,
+              queue_proportional_own_green, actuated, adaptive]
+  primary_metric: avg_total_wait_s    # waiting on the road plus waiting to enter it
+  metrics:                            # compared with paired statistics
+    - avg_total_wait_s
+    - avg_waiting_s
+    - avg_insertion_delay_s
+    - avg_travel_time_s
+    - avg_delay_s
+    - worst_approach_delay_s
+    - avg_queue_veh
+    - max_queue_veh
+    - throughput_veh
+    - stops_per_vehicle
+  confidence: 0.95
+
+verify:
+  runs: 7                             # evaluation runs repeated to check reproducibility
+  seed: 1
